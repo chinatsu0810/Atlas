@@ -8,6 +8,41 @@
       "when": 1726443359662,
       "tag": "0000_soft_the_anarchist",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1784344685622,
+      "tag": "0001_foamy_smiling_tiger",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786627129499,
+      "tag": "0002_striped_titanium_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1787396002795,
+      "tag": "0003_military_meltdown",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1787572075204,
+      "tag": "0004_ancient_thundra",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1787743518086,
+      "tag": "0005_slippery_xavin",
+      "breakpoints": true
     }
   ]
 }

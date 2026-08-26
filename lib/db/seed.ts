@@ -13,7 +13,7 @@ async function createStripeProducts() {
 
   await stripe.prices.create({
     product: baseProduct.id,
-    unit_amount: 800, // $8 in cents
+    unit_amount: 800,
     currency: 'usd',
     recurring: {
       interval: 'month',
@@ -28,7 +28,7 @@ async function createStripeProducts() {
 
   await stripe.prices.create({
     product: plusProduct.id,
-    unit_amount: 1200, // $12 in cents
+    unit_amount: 1200,
     currency: 'usd',
     recurring: {
       interval: 'month',
@@ -46,13 +46,11 @@ async function seed() {
 
   const [user] = await db
     .insert(users)
-    .values([
-      {
-        email: email,
-        passwordHash: passwordHash,
-        role: "owner",
-      },
-    ])
+    .values({
+      email,
+      passwordHash,
+      role: 'owner',
+    })
     .returning();
 
   console.log('Initial user created.');
