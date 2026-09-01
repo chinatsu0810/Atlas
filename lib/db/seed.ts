@@ -80,3 +80,21 @@ seed()
     console.log('Seed process finished. Exiting...');
     process.exit(0);
   });
+
+  const defaultTags = [
+  { name: '赴任準備', slug: 'preparation' },
+  { name: '駐在生活', slug: 'expat-life' },
+  { name: '出向・転勤', slug: 'transfer' },
+  { name: '子育て', slug: 'parenting' },
+  { name: '学校・教育', slug: 'education' },
+  { name: '住まい', slug: 'housing' },
+  { name: '仕事', slug: 'work' },
+  { name: 'ビザ・手続き', slug: 'visa' },
+  { name: 'お金・税金', slug: 'finance' },
+  { name: '医療・保険', slug: 'medical' },
+  { name: '一時帰国', slug: 'return-japan' },
+  { name: '旅行', slug: 'travel' },
+  { name: '現地生活', slug: 'local-life' },
+  { name: '日本食・買い物', slug: 'shopping' },
+  { name: 'その他', slug: 'other' },
+];

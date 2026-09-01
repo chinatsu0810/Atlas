@@ -1,8 +1,17 @@
 import { desc, and, eq, isNull } from 'drizzle-orm';
 import { db } from './drizzle';
-import { activityLogs, teamMembers, teams, users } from './schema';
+import {
+  activityLogs,
+  contacts,
+  teamMembers,
+  teams,
+  users,
+} from './schema';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/session';
+import { isAdmin } from '@/lib/auth/permissions';
+
+
 
 export async function getUser() {
   const sessionCookie = (await cookies()).get('session');
@@ -128,3 +137,36 @@ export async function getTeamForUser() {
 
   return result?.team || null;
 }
+
+
+
+export async function getContacts() {
+  const user = await getUser();
+
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+
+  const admin = await isAdmin(user.id);
+
+  if (!admin) {
+    throw new Error('Unauthorized');
+  }
+
+  return await db
+    .select({
+      id: contacts.id,
+      name: contacts.name,
+      email: contacts.email,
+      category: contacts.category,
+      message: contacts.message,
+      status: contacts.status,
+      createdAt: contacts.createdAt,
+      updatedAt: contacts.updatedAt,
+    })
+    .from(contacts)
+    .orderBy(desc(contacts.createdAt));
+}
+
+
+

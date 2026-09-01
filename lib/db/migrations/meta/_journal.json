@@ -43,6 +43,27 @@
       "when": 1787743518086,
       "tag": "0005_slippery_xavin",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788154075693,
+      "tag": "0006_tired_molecule_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1788172431266,
+      "tag": "0007_clammy_ironclad",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1788181919412,
+      "tag": "0008_gray_jackpot",
+      "breakpoints": true
     }
   ]
 }

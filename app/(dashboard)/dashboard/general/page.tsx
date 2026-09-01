@@ -1,20 +1,26 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Globe, ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 import { updateAccount } from '@/app/(login)/actions';
 import { User } from '@/lib/db/schema';
 import useSWR from 'swr';
-import { Suspense } from 'react';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 type ActionState = {
   name?: string;
+  email?: string;
   error?: string;
   success?: string;
 };
@@ -28,31 +34,39 @@ type AccountFormProps = {
 function AccountForm({
   state,
   nameValue = '',
-  emailValue = ''
+  emailValue = '',
 }: AccountFormProps) {
   return (
     <>
       <div>
         <Label htmlFor="name" className="mb-2">
-          Name
+          ニックネーム
         </Label>
+
         <Input
           id="name"
           name="name"
-          placeholder="Enter your name"
+          placeholder="質問や回答で表示される名前"
           defaultValue={state.name || nameValue}
           required
+          maxLength={100}
         />
+
+        <p className="mt-2 text-sm text-muted-foreground">
+          質問や回答を投稿したときに表示されます。
+        </p>
       </div>
+
       <div>
         <Label htmlFor="email" className="mb-2">
-          Email
+          メールアドレス
         </Label>
+
         <Input
           id="email"
           name="email"
           type="email"
-          placeholder="Enter your email"
+          placeholder="メールアドレス"
           defaultValue={emailValue}
           required
         />
@@ -61,8 +75,13 @@ function AccountForm({
   );
 }
 
-function AccountFormWithData({ state }: { state: ActionState }) {
+function AccountFormWithData({
+  state,
+}: {
+  state: ActionState;
+}) {
   const { data: user } = useSWR<User>('/api/user', fetcher);
+
   return (
     <AccountForm
       state={state}
@@ -73,49 +92,93 @@ function AccountFormWithData({ state }: { state: ActionState }) {
 }
 
 export default function GeneralPage() {
-  const [state, formAction, isPending] = useActionState<ActionState, FormData>(
-    updateAccount,
-    {}
-  );
+  const [state, formAction, isPending] = useActionState<
+    ActionState,
+    FormData
+  >(updateAccount, {});
 
   return (
-    <section className="flex-1 p-4 lg:p-8">
-      <h1 className="text-lg lg:text-2xl font-medium text-gray-900 mb-6">
-        General Settings
-      </h1>
+    <main className="min-h-screen px-6 py-12">
+      <div className="max-w-4xl mx-auto">
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Account Information</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form className="space-y-4" action={formAction}>
-            <Suspense fallback={<AccountForm state={state} />}>
-              <AccountFormWithData state={state} />
-            </Suspense>
-            {state.error && (
-              <p className="text-red-500 text-sm">{state.error}</p>
-            )}
-            {state.success && (
-              <p className="text-green-500 text-sm">{state.success}</p>
-            )}
-            <Button
-              type="submit"
-              className="bg-orange-500 hover:bg-orange-600 text-white"
-              disabled={isPending}
-            >
-              {isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                'Save Changes'
+        {/* Atlas ホーム */}
+        <div className="mb-8">
+          <Link
+            href="/"
+            className="inline-flex items-center transition-opacity hover:opacity-80"
+            aria-label="Atlas ホームへ戻る"
+          >
+            <Globe className="h-6 w-6 text-sky-600" />
+            <span className="ml-2 text-xl font-semibold tracking-tight text-gray-900">
+              Atlas
+            </span>
+          </Link>
+        </div>
+
+        {/* Header */}
+        <div className="mb-10">
+          <h1 className="text-3xl font-bold mt-6 mb-3">
+            プロフィール
+          </h1>
+
+          <p className="text-muted-foreground">
+            ニックネームやメールアドレスを変更できます。
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>プロフィール情報</CardTitle>
+          </CardHeader>
+
+          <CardContent>
+            <form className="space-y-6" action={formAction}>
+              <Suspense fallback={<AccountForm state={state} />}>
+                <AccountFormWithData state={state} />
+              </Suspense>
+
+              {state.error && (
+                <p className="text-sm text-red-500">
+                  {state.error}
+                </p>
               )}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-    </section>
+
+              {state.success && (
+                <p className="text-sm text-green-600">
+                  {state.success}
+                </p>
+              )}
+
+              <Button
+                type="submit"
+                className="bg-orange-500 text-white hover:bg-orange-600"
+                disabled={isPending}
+              >
+                {isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    保存中...
+                  </>
+                ) : (
+                  '変更を保存'
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* 下の戻る */}
+        <div className="mt-12 pb-8">
+          <Link
+            href="/account"
+            className="inline-flex items-center text-sm text-muted-foreground hover:text-gray-900"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            マイページに戻る
+          </Link>
+        </div>
+
+      </div>
+    </main>
   );
 }

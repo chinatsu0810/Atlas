@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Search, MessageCircle, PlusCircle, Globe2 } from 'lucide-react';
+import { Search, MessageCircle, PlusCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -24,78 +24,77 @@ export default async function DashboardPage() {
     .limit(10);
 
   return (
-    <section className="flex-1 p-4 lg:p-8 max-w-5xl mx-auto">
+    <section className="flex-1 p-4 md:p-6 lg:p-8 max-w-5xl mx-auto">
 
       {/* Hero */}
-      <div className="mb-10">
-        <div className="flex items-center gap-2 mb-3 text-sm text-muted-foreground">
-          <Globe2 className="h-4 w-4" />
-          Atlas
-        </div>
+      <div className="mb-8 md:mb-10">
+       <h1 className="text-2xl md:text-4xl font-bold tracking-tight leading-tight mb-4">
+  海外生活で「知りたいこと」を経験者に聞ける場所
+</h1>
 
-        <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-          海外生活で「知りたいこと」を
-          <br />
-          経験者に聞ける場所
-        </h1>
-
-        <p className="text-muted-foreground leading-7 mb-6 max-w-2xl">
-          海外で暮らしている人の質問や回答から、
-          <br className="hidden md:block" />
-          自分が知りたい情報を探してみましょう。
+        <p className="text-sm md:text-base text-muted-foreground leading-7 mb-5 md:mb-6 max-w-2xl">
+          海外で暮らしている人の質問や回答から、自分が知りたい情報を探してみましょう。
         </p>
 
-        <div className="flex flex-wrap gap-3">
-         <Link href="/search">
-  <Button
-    size="lg"
-    className="bg-orange-500 hover:bg-orange-600 text-white"
-  >
-    <Search className="mr-2 h-5 w-5" />
-    質問を検索する
-  </Button>
-</Link>
+        <div className="flex flex-wrap gap-2 md:gap-3">
+          <Link href="/search">
+            <Button
+              size="lg"
+              className="h-10 px-3 md:px-4 text-sm bg-orange-500 hover:bg-orange-600 text-white"
+            >
+              <Search className="mr-2 h-4 w-4" />
+              質問を検索する
+            </Button>
+          </Link>
 
-<Link href="/questions/new">
-  <Button size="lg" variant="outline">
-    <PlusCircle className="mr-2 h-5 w-5" />
-    質問する
-  </Button>
-</Link>
+          <Link href="/questions/new">
+            <Button
+              size="lg"
+              variant="outline"
+              className="h-10 px-3 md:px-4 text-sm"
+            >
+              <PlusCircle className="mr-2 h-4 w-4" />
+              質問する
+            </Button>
+          </Link>
         </div>
       </div>
 
       {/* Quick Links */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-8 md:mb-10">
 
         <Link href="/search">
           <Card className="h-full hover:bg-muted/50 transition cursor-pointer">
-            <CardContent className="p-6">
-              <Search className="h-6 w-6 mb-4 text-orange-500" />
+            <CardContent className="p-3 md:p-4 flex items-start gap-3">
+              <Search className="h-5 w-5 mt-0.5 shrink-0 text-orange-500" />
 
-              <h2 className="font-bold text-lg mb-2">
-                知りたいことを検索
-              </h2>
+              <div>
+                <h2 className="font-bold text-base mb-1">
+                  知りたいことを検索
+                </h2>
 
-              <p className="text-sm text-muted-foreground">
-                国やキーワードから海外生活の質問を探せます。
-              </p>
+                <p className="text-sm text-muted-foreground">
+                  国やキーワードから海外生活の質問を探せます。
+                </p>
+              </div>
             </CardContent>
           </Card>
         </Link>
 
         <Link href="/questions/new">
           <Card className="h-full hover:bg-muted/50 transition cursor-pointer">
-            <CardContent className="p-6">
-              <MessageCircle className="h-6 w-6 mb-4 text-orange-500" />
+            <CardContent className="p-3 md:p-4 flex items-start gap-3">
+              <MessageCircle className="h-5 w-5 mt-0.5 shrink-0 text-orange-500" />
 
-              <h2 className="font-bold text-lg mb-2">
-                質問する
-              </h2>
+              <div>
+                <h2 className="font-bold text-base mb-1">
+                  質問する
+                </h2>
 
-              <p className="text-sm text-muted-foreground">
-                探しても見つからないことは、経験者に聞いてみましょう。
-              </p>
+                <p className="text-sm text-muted-foreground">
+                  探しても見つからないことは、経験者に聞いてみましょう。
+                </p>
+              </div>
             </CardContent>
           </Card>
         </Link>
@@ -103,22 +102,23 @@ export default async function DashboardPage() {
       </div>
 
       {/* Countries */}
-      <Card className="mb-10">
-        <CardHeader>
-          <CardTitle>
+      <Card className="mb-8 md:mb-10">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg md:text-xl">
             国・地域から探す
           </CardTitle>
         </CardHeader>
 
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <CardContent className="pt-0">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
             {countries.map((country) => (
               <Link
                 key={country}
                 href={`/search?q=${encodeURIComponent(country)}`}
                 className="
-                  border rounded-lg p-4
-                  text-center
+                  border rounded-lg
+                  px-3 py-2.5
+                  text-center text-sm
                   hover:bg-muted
                   transition
                 "
@@ -132,8 +132,8 @@ export default async function DashboardPage() {
 
       {/* Latest Questions */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between pb-3">
+          <CardTitle className="text-lg md:text-xl">
             最新の質問
           </CardTitle>
 
@@ -145,10 +145,10 @@ export default async function DashboardPage() {
           </Link>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="pt-0">
           {latestQuestions.length === 0 ? (
-            <div className="text-center py-10">
-              <p className="text-muted-foreground mb-4">
+            <div className="text-center py-8 md:py-10">
+              <p className="text-sm md:text-base text-muted-foreground mb-4">
                 まだ質問がありません。
               </p>
 
@@ -170,16 +170,17 @@ export default async function DashboardPage() {
                 >
                   <div
                     className="
-                      border rounded-xl p-5
+                      border rounded-xl
+                      p-4 md:p-5
                       hover:bg-muted
                       transition
                     "
                   >
-                    <div className="text-sm text-muted-foreground mb-2">
+                    <div className="text-xs md:text-sm text-muted-foreground mb-1.5 md:mb-2">
                       {question.country}
                     </div>
 
-                    <h3 className="font-semibold mb-2">
+                    <h3 className="text-base md:text-lg font-semibold mb-1.5 md:mb-2">
                       {question.title}
                     </h3>
 

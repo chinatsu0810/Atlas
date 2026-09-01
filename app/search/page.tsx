@@ -1,4 +1,8 @@
 import Link from 'next/link';
+import { desc, isNull } from 'drizzle-orm';
+
+import { db } from '@/lib/db/drizzle';
+import { questions } from '@/lib/db/schema';
 
 import { searchQuestions } from '@/lib/questions/actions';
 import { Button } from '@/components/ui/button';
@@ -12,33 +16,36 @@ export default async function SearchPage({
   const params = await searchParams;
   const keyword = params.q?.trim() ?? '';
 
-  const results = await searchQuestions(keyword);
+  const results = keyword
+  ? await searchQuestions(keyword)
+  : await db
+      .select()
+      .from(questions)
+      .where(isNull(questions.deletedAt))
+      .orderBy(desc(questions.createdAt))
+      .limit(10);
 
   return (
-    <main className="min-h-screen px-6 py-12">
+    <main className="min-h-screen px-4 py-5 md:px-6 md:py-6">
       <div className="max-w-4xl mx-auto">
 
         {/* 上の戻る */}
-        <div className="mb-8">
+        <div className="mb-5">
           <BackButton />
         </div>
 
-        {/* Header */}
-        <div className="mb-10">
-          <h1 className="text-3xl font-bold mt-6 mb-3">
-            海外生活で「知りたいこと」を検索
-          </h1>
-
-          <p className="text-muted-foreground">
-            実際に海外で暮らす人の質問や回答から探してみてください。
-          </p>
-        </div>
+      {/* Header */}
+<div className="mb-4">
+  <h1 className="text-xl md:text-2xl font-bold tracking-tight">
+    海外生活で「知りたいこと」を検索
+  </h1>
+</div>
 
         {/* Search */}
         <form
           action="/search"
           method="get"
-          className="flex gap-3 mb-12"
+          className="flex gap-2 mb-6"
         >
           <input
             name="q"
@@ -47,11 +54,13 @@ export default async function SearchPage({
             placeholder="例：インド ローカル校 小学生 赴任"
             className="
               flex-1
+              min-w-0
               border
               rounded-lg
-              px-4
-              py-3
-              text-base
+              px-3
+              py-2.5
+              text-sm
+              md:text-base
               focus:outline-none
               focus:ring-2
               focus:ring-orange-500
@@ -61,10 +70,11 @@ export default async function SearchPage({
           <Button
             type="submit"
             className="
+              shrink-0
               bg-orange-500
               hover:bg-orange-600
               text-white
-              px-6
+              px-4
             "
           >
             検索
@@ -74,8 +84,8 @@ export default async function SearchPage({
         {/* キーワードなし：最新の質問 */}
         {!keyword && (
           <section>
-            <div className="mb-5">
-              <h2 className="text-xl font-bold">
+            <div className="mb-4">
+              <h2 className="text-lg md:text-xl font-bold">
                 最新の質問
               </h2>
 
@@ -85,8 +95,8 @@ export default async function SearchPage({
             </div>
 
             {results.length === 0 ? (
-              <div className="border rounded-lg p-8 text-center">
-                <p className="text-muted-foreground mb-5">
+              <div className="border rounded-lg p-6 text-center">
+                <p className="text-sm text-muted-foreground mb-4">
                   まだ質問がありません。
                 </p>
 
@@ -103,7 +113,7 @@ export default async function SearchPage({
                 </Link>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {results.map((question) => (
                   <Link
                     key={question.id}
@@ -112,24 +122,24 @@ export default async function SearchPage({
                       block
                       border
                       rounded-lg
-                      p-5
+                      p-4
                       hover:bg-muted
                       transition
                     "
                   >
-                    <div className="text-sm text-muted-foreground mb-2">
+                    <div className="text-xs text-muted-foreground mb-1.5">
                       {question.country}
                     </div>
 
-                    <h2 className="text-lg font-semibold mb-2">
+                    <h2 className="text-base md:text-lg font-semibold mb-1.5">
                       {question.title}
                     </h2>
 
-                    <p className="text-sm text-muted-foreground line-clamp-3">
+                    <p className="text-sm text-muted-foreground line-clamp-2">
                       {question.content}
                     </p>
 
-                    <div className="mt-4 text-sm text-orange-600">
+                    <div className="mt-3 text-sm text-orange-600">
                       質問と回答を見る →
                     </div>
                   </Link>
@@ -138,7 +148,7 @@ export default async function SearchPage({
             )}
 
             {results.length > 0 && (
-              <div className="mt-10 text-center">
+              <div className="mt-6 text-center">
                 <Link
                   href="/questions/new"
                   className="
@@ -146,7 +156,8 @@ export default async function SearchPage({
                     border
                     rounded-lg
                     px-5
-                    py-3
+                    py-2.5
+                    text-sm
                     hover:bg-muted
                     transition
                   "
@@ -160,12 +171,12 @@ export default async function SearchPage({
 
         {/* キーワードあり・結果なし */}
         {keyword && results.length === 0 && (
-          <div className="border rounded-lg p-8 text-center">
-            <h2 className="text-xl font-semibold mb-3">
+          <div className="border rounded-lg p-6 md:p-6 text-center">
+            <h2 className="text-lg md:text-xl font-semibold mb-3">
               「{keyword}」に近い質問が見つかりませんでした
             </h2>
 
-            <p className="text-muted-foreground mb-6">
+            <p className="text-sm md:text-base text-muted-foreground mb-5">
               まだAtlasに回答がないのかもしれません。
               <br />
               あなたの状況を質問してみませんか？
@@ -188,17 +199,17 @@ export default async function SearchPage({
         {/* キーワードあり・結果あり */}
         {keyword && results.length > 0 && (
           <section>
-            <div className="mb-5">
+            <div className="mb-4">
               <p className="text-sm text-muted-foreground">
                 「{keyword}」に関連する質問
               </p>
 
-              <p className="text-2xl font-bold mt-1">
+              <p className="text-xl md:text-2xl font-bold mt-0.5">
                 {results.length}件
               </p>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3">
               {results.map((question) => (
                 <Link
                   key={question.id}
@@ -207,34 +218,36 @@ export default async function SearchPage({
                     block
                     border
                     rounded-lg
-                    p-5
+                    p-4
                     hover:bg-muted
                     transition
                   "
                 >
-                  <div className="text-sm text-muted-foreground mb-2">
+                  <div className="text-xs text-muted-foreground mb-1.5">
                     {question.country}
                   </div>
 
-                  <h2 className="text-lg font-semibold mb-2">
+                  <h2 className="text-base md:text-lg font-semibold mb-1.5">
                     {question.title}
                   </h2>
 
-                  <p className="text-sm text-muted-foreground line-clamp-3">
+                  <p className="text-sm text-muted-foreground line-clamp-2">
                     {question.content}
                   </p>
 
-                  <div className="mt-4 text-sm text-orange-600">
+                  <div className="mt-3 text-sm text-orange-600">
                     質問と回答を見る →
                   </div>
                 </Link>
               ))}
             </div>
 
-            <div className="mt-10 border-t pt-8 text-center">
-              <p className="text-sm text-muted-foreground mb-4">
-                知りたい情報が見つからなければ、質問してみてください。
-              </p>
+            <div className="mt-8 border-t pt-6 text-center">
+              <p className="text-sm text-muted-foreground mb-4 leading-6">
+  知りたい情報が見つからなければ、
+  <br className="md:hidden" />
+  質問してみてください。
+</p>
 
               <Link href="/questions/new">
                 <Button
@@ -249,7 +262,7 @@ export default async function SearchPage({
         )}
 
         {/* 下の戻る */}
-        <div className="mt-12 pb-8">
+        <div className="mt-8 pb-6">
           <BackButton />
         </div>
 

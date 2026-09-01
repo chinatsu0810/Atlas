@@ -1,4 +1,4 @@
-'use server';
+﻿'use server';
 
 import { redirect } from 'next/navigation';
 
@@ -9,43 +9,50 @@ import {
   ilike,
   isNull,
   or,
+  notInArray,
 } from 'drizzle-orm';
 
+import { countries } from '@/lib/constants/countries';
 import { db } from '@/lib/db/drizzle';
-import { answers, questions } from '@/lib/db/schema';
+import {
+  answers,
+  questionTags,
+  questions,
+} from '@/lib/db/schema';
 import { getSession } from '@/lib/auth/session';
 import { isAdmin } from '@/lib/auth/permissions';
 
-
-/**
- * 質問を作成
- */
 export async function createQuestion(formData: FormData) {
   const session = await getSession();
 
   if (!session) {
     throw new Error('ログインしてください');
   }
-
+ 
   const title = formData.get('title') as string;
   const country = formData.get('country') as string;
-
-const countryFreeText =
-  (formData.get('countryFreeText') as string)?.trim() || null;
+  const countryFreeText =
+    (formData.get('countryFreeText') as string)?.trim() || null;
   const content = formData.get('content') as string;
 
+  const tagIds = formData
+    .getAll('tagIds')
+    .map((value) => Number(value))
+    .filter((id) => Number.isInteger(id) && id > 0);
+
   if (!title?.trim() || !country?.trim() || !content?.trim()) {
-    throw new Error('すべての項目を入力してください');
+    throw new Error('すべての必須項目を入力してください');
   }
 
   const normalizedTitle = title.trim();
-const normalizedCountry =
-  country.trim() === 'その他'
-    ? countryFreeText || 'その他'
-    : country.trim();
-const normalizedContent = content.trim();
 
-  // 二重送信対策
+  const normalizedCountry =
+    country.trim() === 'その他'
+      ? countryFreeText || 'その他'
+      : country.trim();
+
+  const normalizedContent = content.trim();
+
   const recentDuplicate = await db
     .select({
       id: questions.id,
@@ -70,7 +77,7 @@ const normalizedContent = content.trim();
     const elapsed =
       Date.now() - existingQuestion.createdAt.getTime();
 
-    if (elapsed <= 10_000) {
+    if (elapsed <= 10000) {
       redirect(`/questions/${existingQuestion.id}`);
     }
   }
@@ -87,13 +94,18 @@ const normalizedContent = content.trim();
       id: questions.id,
     });
 
+  if (tagIds.length > 0) {
+    await db.insert(questionTags).values(
+      tagIds.map((tagId) => ({
+        questionId: question.id,
+        tagId,
+      }))
+    );
+  }
+
   redirect(`/questions/${question.id}`);
 }
 
-
-/**
- * 回答を作成
- */
 export async function createAnswer(formData: FormData) {
   const session = await getSession();
 
@@ -114,7 +126,6 @@ export async function createAnswer(formData: FormData) {
 
   const normalizedContent = content.trim();
 
-  // 二重送信対策
   const recentDuplicate = await db
     .select({
       id: answers.id,
@@ -138,7 +149,7 @@ export async function createAnswer(formData: FormData) {
     const elapsed =
       Date.now() - existingAnswer.createdAt.getTime();
 
-    if (elapsed <= 10_000) {
+    if (elapsed <= 10000) {
       redirect(`/questions/${questionId}`);
     }
   }
@@ -152,10 +163,6 @@ export async function createAnswer(formData: FormData) {
   redirect(`/questions/${questionId}`);
 }
 
-
-/**
- * 管理者による質問の論理削除
- */
 export async function deleteQuestion(formData: FormData) {
   const session = await getSession();
 
@@ -175,7 +182,6 @@ export async function deleteQuestion(formData: FormData) {
     throw new Error('質問が見つかりません');
   }
 
-  // 質問を論理削除
   await db
     .update(questions)
     .set({
@@ -191,10 +197,6 @@ export async function deleteQuestion(formData: FormData) {
   redirect('/search');
 }
 
-
-/**
- * 管理者による回答の論理削除
- */
 export async function deleteAnswer(formData: FormData) {
   const session = await getSession();
 
@@ -219,7 +221,6 @@ export async function deleteAnswer(formData: FormData) {
     throw new Error('質問が見つかりません');
   }
 
-  // 回答を論理削除
   await db
     .update(answers)
     .set({
@@ -237,19 +238,38 @@ export async function deleteAnswer(formData: FormData) {
   redirect(`/questions/${questionId}`);
 }
 
-
-/**
- * 質問検索
- *
- * スペース区切りで複数キーワードを指定した場合はAND検索。
- * 各キーワードがタイトル・本文・国のいずれかに
- * 含まれている質問を対象とする。
- */
 export async function searchQuestions(keyword: string) {
   const trimmedKeyword = keyword.trim();
 
+  // 最新の質問表示用
   if (!trimmedKeyword) {
-    return [];
+    return await db
+      .select()
+      .from(questions)
+      .where(isNull(questions.deletedAt))
+      .orderBy(desc(questions.createdAt))
+      .limit(20);
+  }
+
+  // 「その他」クリック時
+  if (trimmedKeyword === 'その他') {
+    const majorCountries = countries.filter(
+      (country) => country !== 'その他'
+    );
+
+    return await db
+      .select()
+      .from(questions)
+      .where(
+        and(
+          notInArray(
+            questions.country,
+            majorCountries
+          ),
+          isNull(questions.deletedAt)
+        )
+      )
+      .orderBy(desc(questions.createdAt));
   }
 
   const keywords = trimmedKeyword
@@ -257,26 +277,13 @@ export async function searchQuestions(keyword: string) {
     .map((word) => word.trim())
     .filter(Boolean);
 
-  if (keywords.length === 0) {
-    return [];
-  }
-
-  const conditions = keywords.map((originalKeyword) => {
-    const variants =
-      originalKeyword === '小学校'
-        ? ['小学校', '小学生']
-        : originalKeyword === '小学生'
-          ? ['小学生', '小学校']
-          : [originalKeyword];
-
-    return or(
-      ...variants.flatMap((word) => [
-        ilike(questions.title, `%${word}%`),
-        ilike(questions.content, `%${word}%`),
-        ilike(questions.country, `%${word}%`),
-      ])
-    );
-  });
+  const conditions = keywords.map((word) =>
+    or(
+      ilike(questions.title, `%${word}%`),
+      ilike(questions.content, `%${word}%`),
+      ilike(questions.country, `%${word}%`)
+    )
+  );
 
   return await db
     .select()
@@ -289,3 +296,4 @@ export async function searchQuestions(keyword: string) {
     )
     .orderBy(desc(questions.createdAt));
 }
+

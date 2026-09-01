@@ -31,6 +31,31 @@ export const users = pgTable('users', {
   deletedAt: timestamp('deleted_at'),
 });
 
+// ============================================================
+// Password Reset Tokens
+// ============================================================
+
+export const passwordResetTokens = pgTable(
+  'password_reset_tokens',
+  {
+    id: serial('id').primaryKey(),
+
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+
+    token: varchar('token', { length: 255 })
+      .notNull()
+      .unique(),
+
+    expiresAt: timestamp('expires_at').notNull(),
+
+    createdAt: timestamp('created_at')
+      .notNull()
+      .defaultNow(),
+  }
+);
+
 
 // ============================================================
 // Teams
@@ -226,7 +251,66 @@ export const invitations = pgTable('invitations', {
 
 
 
+// ============================================================
+// Contacts
+// ============================================================
 
+export const contacts = pgTable('contacts', {
+  id: serial('id').primaryKey(),
+
+  userId: integer('user_id')
+    .references(() => users.id),
+
+  name: varchar('name', { length: 100 }),
+
+  email: varchar('email', { length: 255 }).notNull(),
+
+  category: varchar('category', { length: 50 }).notNull(),
+
+  message: text('message').notNull(),
+
+  status: varchar('status', { length: 20 })
+    .notNull()
+    .default('unread'),
+
+  createdAt: timestamp('created_at')
+    .notNull()
+    .defaultNow(),
+
+  updatedAt: timestamp('updated_at')
+    .notNull()
+    .defaultNow(),
+});
+
+
+// ============================================================
+// Contact Status History
+// ============================================================
+
+export const contactStatusHistory = pgTable(
+  'contact_status_history',
+  {
+    id: serial('id').primaryKey(),
+
+    contactId: integer('contact_id')
+      .notNull()
+      .references(() => contacts.id),
+
+    oldStatus: varchar('old_status', { length: 20 })
+      .notNull(),
+
+    newStatus: varchar('new_status', { length: 20 })
+      .notNull(),
+
+    changedBy: integer('changed_by')
+      .notNull()
+      .references(() => users.id),
+
+    createdAt: timestamp('created_at')
+      .notNull()
+      .defaultNow(),
+  }
+);
 
 
 // ============================================================
@@ -246,6 +330,9 @@ export const usersRelations = relations(users, ({ many }) => ({
 
   questions: many(questions),
   answers: many(answers),
+
+  contacts: many(contacts),
+  contactStatusHistory: many(contactStatusHistory),
 }));
 
 
@@ -350,6 +437,35 @@ export const answersRelations = relations(
 );
 
 
+export const contactsRelations = relations(
+  contacts,
+  ({ one, many }) => ({
+    user: one(users, {
+      fields: [contacts.userId],
+      references: [users.id],
+    }),
+
+    statusHistory: many(contactStatusHistory),
+  })
+);
+
+export const contactStatusHistoryRelations = relations(
+  contactStatusHistory,
+  ({ one }) => ({
+    contact: one(contacts, {
+      fields: [contactStatusHistory.contactId],
+      references: [contacts.id],
+    }),
+
+    changedByUser: one(users, {
+      fields: [contactStatusHistory.changedBy],
+      references: [users.id],
+    }),
+  })
+);
+
+
+
 // ============================================================
 // Types
 // ============================================================
@@ -375,7 +491,16 @@ export type NewAnswer = typeof answers.$inferInsert;
 export type Invitation = typeof invitations.$inferSelect;
 export type NewInvitation = typeof invitations.$inferInsert;
 
+export type Contact = typeof contacts.$inferSelect;
+export type NewContact = typeof contacts.$inferInsert;
 
+export type ContactStatusHistory =
+  typeof contactStatusHistory.$inferSelect;
+
+export type NewContactStatusHistory =
+  typeof contactStatusHistory.$inferInsert;
+
+  
 // ============================================================
 // Team Data
 // ============================================================

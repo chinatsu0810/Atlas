@@ -1,14 +1,23 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 
 import { createQuestion } from '@/lib/questions/actions';
-
+import TagSelector from '@/components/tag-selector';
 import { Button } from '@/components/ui/button';
-
 import { countries } from '@/lib/constants/countries';
 
-export default function QuestionForm() {
+type Tag = {
+  id: number;
+  name: string;
+  slug: string;
+};
+
+type QuestionFormProps = {
+  tags: Tag[];
+};
+
+export default function QuestionForm({ tags }: QuestionFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState('');
 
@@ -33,14 +42,14 @@ export default function QuestionForm() {
           htmlFor="title"
           className="block text-sm font-medium mb-2"
         >
-          何について知りたいですか？
+          質問タイトル
         </label>
 
         <input
           id="title"
           name="title"
           type="text"
-          placeholder="例：インドのローカル校に小学生を通わせた方、どうでしたか？"
+          placeholder="例：海外の学校選び、みなさんどうしましたか？"
           className="w-full border rounded-lg p-3 bg-background"
           disabled={isSubmitting}
           required
@@ -82,7 +91,7 @@ export default function QuestionForm() {
             htmlFor="countryFreeText"
             className="block text-sm font-medium mb-2"
           >
-            国名（その他の場合）
+            国名・地域名
           </label>
 
           <input
@@ -114,6 +123,14 @@ export default function QuestionForm() {
           disabled={isSubmitting}
           required
         />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-2">
+          タグ
+        </label>
+
+        <TagSelector tags={tags} />
       </div>
 
       <div>

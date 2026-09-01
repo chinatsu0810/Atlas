@@ -1,6 +1,8 @@
-import Link from 'next/link';
+﻿import Link from 'next/link';
 
 import { getSession } from '@/lib/auth/session';
+import { db } from '@/lib/db/drizzle';
+import { tags } from '@/lib/db/schema';
 
 import {
   Card,
@@ -14,6 +16,14 @@ import QuestionForm from './question-form';
 
 export default async function NewQuestionPage() {
   const session = await getSession();
+
+  const tagList = await db
+    .select({
+      id: tags.id,
+      name: tags.name,
+      slug: tags.slug,
+    })
+    .from(tags);
 
   return (
     <section className="flex-1 p-4 lg:p-8 max-w-3xl mx-auto">
@@ -30,7 +40,7 @@ export default async function NewQuestionPage() {
           <CardContent>
             <div className="space-y-6">
               <p className="text-sm text-muted-foreground">
-                質問を投稿するにはログインが必要です。
+                質問するにはログインが必要です。
               </p>
 
               <div className="flex gap-3">
@@ -52,7 +62,7 @@ export default async function NewQuestionPage() {
           </CardContent>
         ) : (
           <CardContent>
-            <QuestionForm />
+            <QuestionForm tags={tagList} />
           </CardContent>
         )}
       </Card>
