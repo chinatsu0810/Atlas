@@ -1,5 +1,5 @@
-import { db } from './lib/db/drizzle';
-import { questions, answers } from './lib/db/schema';
+import { db } from './drizzle';
+import { questions, answers } from './schema';
 import { eq } from 'drizzle-orm';
 
 async function clearSeed() {
