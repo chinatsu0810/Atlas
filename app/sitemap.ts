@@ -1,6 +1,21 @@
 import type { MetadataRoute } from 'next';
+import { db } from '@/lib/db/drizzle';
+import { questions } from '@/lib/db/schema';
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export const dynamic = 'force-dynamic';
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  console.log('SITEMAP: fetching questions');
+
+  const allQuestions = await db
+    .select({
+      id: questions.id,
+      updatedAt: questions.updatedAt,
+    })
+    .from(questions);
+
+  console.log('SITEMAP: questions count =', allQuestions.length);
+
   return [
     {
       url: 'https://www.atlas-community.jp',
@@ -14,5 +29,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: 'https://www.atlas-community.jp/questions',
       lastModified: new Date(),
     },
+    ...allQuestions.map((question) => ({
+      url: `https://www.atlas-community.jp/questions/${question.id}`,
+      lastModified: question.updatedAt,
+    })),
   ];
 }
