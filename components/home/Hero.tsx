@@ -2,7 +2,7 @@ import Image from "next/image";
 
 export function Hero() {
   return (
-    <div className="relative">
+    <div className="relative hidden md:block">
       <Image
         src="/images/hero-community.PNG"
         alt=""
