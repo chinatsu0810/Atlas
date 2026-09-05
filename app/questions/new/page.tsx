@@ -61,9 +61,9 @@ export default async function NewQuestionPage() {
             </div>
           </CardContent>
         ) : (
-          <CardContent>
-            <QuestionForm tags={tagList} />
-          </CardContent>
+         <CardContent>
+  <QuestionForm tags={tagList} />
+</CardContent>
         )}
       </Card>
 

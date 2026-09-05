@@ -62,7 +62,7 @@ export default function ContactPage() {
         </p>
 
         <p className="mt-2 text-sm text-gray-500">
-          通常3営業日以内を目安にご返信いたします。
+          内容を確認のうえ、必要に応じてご返信または対応いたします。内容によっては返信を行わない場合があります。
         </p>
       </div>
 

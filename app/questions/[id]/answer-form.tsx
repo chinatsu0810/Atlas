@@ -44,7 +44,7 @@ export function AnswerForm({
 
       <textarea
         name="content"
-        placeholder="知っていることや、実際の経験などを教えてください。"
+        placeholder="あなたの場合はどうだったか、ぜひ教えてください。"
         rows={7}
         className="
           w-full

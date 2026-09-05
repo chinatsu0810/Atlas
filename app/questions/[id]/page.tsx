@@ -277,22 +277,21 @@ export default async function QuestionPage({ params }: Props) {
         {/* Answer Form */}
         <section className="mt-8 md:mt-12 border-t pt-7 md:pt-10">
           {session ? (
-            <>
-              <h2 className="text-lg md:text-xl font-bold mb-2">
-                この質問に回答する
-              </h2>
+           <>
+  <h2 className="text-lg md:text-xl font-bold mb-2">
+    この質問に回答する
+  </h2>
 
-              <p className="text-sm text-muted-foreground mb-4 md:mb-5 leading-6">
-                あなたの海外生活の経験が、
-                <br className="md:hidden" />
-                誰かの役に立つかもしれません。
-              </p>
+  <p className="text-sm text-muted-foreground mb-4 md:mb-5 leading-6">
+    相手の立場を尊重し、気持ちよく利用できるコミュニティづくりにご協力ください。
+  </p>
 
-              <AnswerForm
-                questionId={question.id}
-                action={createAnswer}
-              />
-            </>
+  <AnswerForm
+    questionId={question.id}
+    action={createAnswer}
+  />
+</>
+
           ) : (
             <div className="border rounded-xl md:rounded-2xl p-6 md:p-8 text-center bg-muted/20">
               <h2 className="text-base md:text-lg font-bold mb-2">

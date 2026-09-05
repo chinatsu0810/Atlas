@@ -49,7 +49,7 @@ export default function QuestionForm({ tags }: QuestionFormProps) {
           id="title"
           name="title"
           type="text"
-          placeholder="例：海外の学校選び、みなさんどうしましたか？"
+          placeholder="例：デリーで子ども向けの習い事はありますか？"
           className="w-full border rounded-lg p-3 bg-background"
           disabled={isSubmitting}
           required
@@ -117,7 +117,7 @@ export default function QuestionForm({ tags }: QuestionFormProps) {
         <textarea
           id="content"
           name="content"
-          placeholder="知りたいことや現在の状況などを、できるだけ具体的に書いてください。"
+          placeholder="経験者から具体的な回答をもらえるよう、 国・地域や状況をできるだけ詳しく書いてみましょう。"
           rows={8}
           className="w-full border rounded-lg p-3 bg-background"
           disabled={isSubmitting}

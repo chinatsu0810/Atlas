@@ -1,6 +1,6 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { Search, MessageCircle, PlusCircle } from 'lucide-react';
-
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -26,39 +26,76 @@ export default async function DashboardPage() {
   return (
     <section className="flex-1 p-4 md:p-6 lg:p-8 max-w-5xl mx-auto">
 
-      {/* Hero */}
-      <div className="mb-8 md:mb-10">
-       <h1 className="text-2xl md:text-4xl font-bold tracking-tight leading-tight mb-4">
-  海外生活で「知りたいこと」を経験者に聞ける場所
-</h1>
+     {/* Hero */}
+<div className="mb-8 md:mb-10">
+  <div className="grid md:grid-cols-2 gap-6 md:gap-8 items-center">
 
-        <p className="text-sm md:text-base text-muted-foreground leading-7 mb-5 md:mb-6 max-w-2xl">
-          海外で暮らしている人の質問や回答から、自分が知りたい情報を探してみましょう。
-        </p>
+    {/* Left: Text */}
+    <div>
+      <h1 className="text-2xl md:text-4xl font-bold tracking-tight leading-tight mb-4">
+        「実際どうだった？」を、
+              <br />経験した人に聞ける場所。
+      </h1>
 
-        <div className="flex flex-wrap gap-2 md:gap-3">
-          <Link href="/search">
-            <Button
-              size="lg"
-              className="h-10 px-3 md:px-4 text-sm bg-orange-500 hover:bg-orange-600 text-white"
-            >
-              <Search className="mr-2 h-4 w-4" />
-              質問を検索する
-            </Button>
-          </Link>
+      <p className="text-sm md:text-base text-muted-foreground leading-7 mb-5 md:mb-6 max-w-2xl">
+        旅行、出張、赴任、留学、移住。
+        <br />
+        世界のいろんな場所での経験を、誰かに聞いてみませんか。
+        <br />
+        <br />
+        Atlasには、さまざまな人の「私はこうだった」が集まります。
+        <br />
+        あなたの「知りたい」に、誰かの経験が答えてくれるかもしれません。
+      </p>
 
-          <Link href="/questions/new">
-            <Button
-              size="lg"
-              variant="outline"
-              className="h-10 px-3 md:px-4 text-sm"
-            >
-              <PlusCircle className="mr-2 h-4 w-4" />
-              質問する
-            </Button>
-          </Link>
-        </div>
+      <div className="flex flex-wrap gap-2 md:gap-3">
+        <Link href="/search">
+          <Button
+            size="lg"
+            className="h-10 px-3 md:px-4 text-sm bg-orange-500 hover:bg-orange-600 text-white"
+          >
+            <Search className="mr-2 h-4 w-4" />
+            質問を検索する
+          </Button>
+        </Link>
+
+        <Link href="/questions/new">
+          <Button
+            size="lg"
+            variant="outline"
+            className="h-10 px-3 md:px-4 text-sm"
+          >
+            <PlusCircle className="mr-2 h-4 w-4" />
+            質問する
+          </Button>
+        </Link>
       </div>
+    </div>
+
+    {/* Right: Illustration */}
+    <div className="relative">
+      <Image
+        src="/images/hero-community.PNG"
+        alt=""
+        width={1200}
+        height={800}
+        className="w-full h-auto"
+        priority
+      />
+
+      <div
+        className="
+          absolute inset-y-0 left-0
+          w-48
+          bg-gradient-to-r
+          from-white
+          to-transparent
+        "
+      />
+    </div>
+
+  </div>
+</div>
 
       {/* Quick Links */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-8 md:mb-10">
