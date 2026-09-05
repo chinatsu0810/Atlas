@@ -2,6 +2,8 @@ import type { MetadataRoute } from 'next';
 import { db } from '@/lib/db/drizzle';
 import { questions } from '@/lib/db/schema';
 
+export const dynamic = 'force-dynamic';
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const allQuestions = await db
     .select({
