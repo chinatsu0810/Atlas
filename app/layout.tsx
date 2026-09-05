@@ -7,6 +7,7 @@ import { getUser, getTeamForUser } from '@/lib/db/queries';
 import { getSession } from '@/lib/auth/session';
 import { SWRConfig } from 'swr';
 import { Footer } from '@/components/footer';
+import Script from 'next/script';
 
 export const metadata: Metadata = {
   title: 'Atlas',
@@ -107,6 +108,20 @@ export default async function RootLayout({
       className={`bg-white dark:bg-gray-950 text-black dark:text-white ${manrope.className}`}
     >
       <body className="min-h-[100dvh] bg-gray-50">
+        {/* Google Analytics */}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-MQZ3XFHD3Y"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-MQZ3XFHD3Y');
+          `}
+        </Script>
+
         <SWRConfig
           value={{
             fallback: {
