@@ -10,9 +10,36 @@ import { Footer } from '@/components/footer';
 import Script from 'next/script';
 
 export const metadata: Metadata = {
-  title: 'Atlas',
+  metadataBase: new URL('https://www.atlas-community.jp'),
+
+  title: {
+    default: 'Atlas',
+    template: '%s | Atlas',
+  },
+
   description:
-    '海外で暮らす人の質問や回答から、知りたい情報を探せる場所。',
+    '海外生活の疑問や体験談を共有するコミュニティ。インド・中国・アメリカなど世界各国の暮らし情報が見つかります。',
+
+  alternates: {
+    canonical: '/',
+  },
+
+  openGraph: {
+    title: 'Atlas',
+    description:
+      '海外生活の疑問や体験談を共有するコミュニティ。',
+    url: 'https://www.atlas-community.jp',
+    siteName: 'Atlas',
+    locale: 'ja_JP',
+    type: 'website',
+  },
+
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Atlas',
+    description:
+      '海外生活の疑問や体験談を共有するコミュニティ。',
+  },
 };
 
 export const viewport: Viewport = {

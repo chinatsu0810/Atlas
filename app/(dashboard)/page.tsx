@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { Search, MessageCircle, PlusCircle } from 'lucide-react';
+import { Search, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -72,8 +72,8 @@ export default async function DashboardPage() {
       </div>
     </div>
 
-    {/* Right: Illustration */}
-    <div className="relative">
+   {/* Right: Illustration */}
+<div className="relative hidden md:block">
       <Image
         src="/images/hero-community.PNG"
         alt=""
@@ -83,60 +83,13 @@ export default async function DashboardPage() {
         priority
       />
 
-      <div
-        className="
-          absolute inset-y-0 left-0
-          w-48
-          bg-gradient-to-r
-          from-white
-          to-transparent
-        "
-      />
+      
     </div>
 
   </div>
 </div>
 
-      {/* Quick Links */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-8 md:mb-10">
-
-        <Link href="/search">
-          <Card className="h-full hover:bg-muted/50 transition cursor-pointer">
-            <CardContent className="p-3 md:p-4 flex items-start gap-3">
-              <Search className="h-5 w-5 mt-0.5 shrink-0 text-orange-500" />
-
-              <div>
-                <h2 className="font-bold text-base mb-1">
-                  知りたいことを検索
-                </h2>
-
-                <p className="text-sm text-muted-foreground">
-                  国やキーワードから海外生活の質問を探せます。
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link href="/questions/new">
-          <Card className="h-full hover:bg-muted/50 transition cursor-pointer">
-            <CardContent className="p-3 md:p-4 flex items-start gap-3">
-              <MessageCircle className="h-5 w-5 mt-0.5 shrink-0 text-orange-500" />
-
-              <div>
-                <h2 className="font-bold text-base mb-1">
-                  質問する
-                </h2>
-
-                <p className="text-sm text-muted-foreground">
-                  探しても見つからないことは、経験者に聞いてみましょう。
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-
-      </div>
+   
 
       {/* Countries */}
       <Card className="mb-8 md:mb-10">

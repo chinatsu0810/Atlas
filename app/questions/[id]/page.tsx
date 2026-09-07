@@ -73,9 +73,21 @@ export async function generateMetadata({
   }
 
   return {
-    title: `${question.title} | Atlas`,
+  title: question.title,
+
+  description: question.content.slice(0, 160),
+
+  alternates: {
+    canonical: `/questions/${question.id}`,
+  },
+
+  openGraph: {
+    title: question.title,
     description: question.content.slice(0, 160),
-  };
+    url: `/questions/${question.id}`,
+    type: 'article',
+  },
+};
 }
 
 export default async function QuestionPage({ params }: Props) {
