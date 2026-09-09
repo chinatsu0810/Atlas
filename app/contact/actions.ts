@@ -1,7 +1,9 @@
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
 import { eq } from 'drizzle-orm';
+import { Resend } from 'resend';
 
 import { db } from '@/lib/db/drizzle';
 import {
@@ -11,7 +13,7 @@ import {
 import { getUser } from '@/lib/db/queries';
 import { isAdmin } from '@/lib/auth/permissions';
 
-
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export type ContactState = {
   success?: boolean;
@@ -45,6 +47,23 @@ export async function submitContact(
       message,
     });
 
+    await resend.emails.send({
+      from: 'Atlas <contact@atlas-community.jp>',
+      to: ['contact@atlas-community.jp'],
+      replyTo: email,
+      subject: `【Atlasお問い合わせ】${category}`,
+      text: [
+        'Atlasにお問い合わせがありました。',
+        '',
+        `お名前：${name || '未入力'}`,
+        `メールアドレス：${email}`,
+        `お問い合わせ種別：${category}`,
+        '',
+        'お問い合わせ内容：',
+        message,
+      ].join('\n'),
+    });
+
     return {
       success: true,
       message: 'お問い合わせを送信しました。',
@@ -59,8 +78,6 @@ export async function submitContact(
     };
   }
 }
-
-
 
 export async function updateContactStatus(
   contactId: number,
@@ -98,13 +115,12 @@ export async function updateContactStatus(
     })
     .where(eq(contacts.id, contactId));
 
-await db.insert(contactStatusHistory).values({
-  contactId,
-  oldStatus: contact.status,
-  newStatus: status,
-  changedBy: user.id,
-});
+  await db.insert(contactStatusHistory).values({
+    contactId,
+    oldStatus: contact.status,
+    newStatus: status,
+    changedBy: user.id,
+  });
 
   revalidatePath('/account/contacts');
 }
-

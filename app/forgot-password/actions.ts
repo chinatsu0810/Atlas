@@ -3,12 +3,15 @@
 import { randomBytes } from 'crypto';
 import { z } from 'zod';
 import { and, eq, gt, isNull } from 'drizzle-orm';
+import { Resend } from 'resend';
 
 import { db } from '@/lib/db/drizzle';
 import {
   passwordResetTokens,
   users,
 } from '@/lib/db/schema';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 type ResetState = {
   error?: string;
@@ -91,11 +94,6 @@ export async function requestPasswordReset(
     expiresAt,
   });
 
-  
-  /*
-   * 現段階ではメール送信はまだ行いません。
-   * 開発中はターミナルでURLを確認できるようにします。
-   */
   const baseUrl =
     process.env.NEXT_PUBLIC_APP_URL ||
     'http://localhost:3000';
@@ -103,13 +101,36 @@ export async function requestPasswordReset(
   const resetUrl =
     `${baseUrl}/reset-password?token=${token}`;
 
-  console.log('========================================');
-  console.log('PASSWORD RESET URL');
-  console.log(resetUrl);
-  console.log('========================================');
+  try {
+    await resend.emails.send({
+      from: 'Atlas <contact@atlas-community.jp>',
+      to: [user.email],
+      subject: 'Atlas パスワードリセットのご案内',
+      text: [
+        'Atlasをご利用いただきありがとうございます。',
+        '',
+        'パスワードのリセットがリクエストされました。',
+        '',
+        '以下のリンクからパスワードを再設定してください。',
+        '',
+        resetUrl,
+        '',
+        'このリンクは1時間有効です。',
+        '',
+        'このメールに心当たりがない場合は、無視してください。',
+      ].join('\n'),
+    });
 
-  return {
-    success:
-      '入力されたメールアドレスに、パスワードリセットのご案内を送信しました。',
-  };
+    return {
+      success:
+        '入力されたメールアドレスに、パスワードリセットのご案内を送信しました。',
+    };
+  } catch (error) {
+    console.error('Failed to send password reset email:', error);
+
+    return {
+      error:
+        'パスワードリセットメールの送信に失敗しました。時間をおいてもう一度お試しください。',
+    };
+  }
 }
