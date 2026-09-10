@@ -24,7 +24,7 @@ const menuItems = [
     href: '/account/security',
     icon: LockKeyhole,
     title: 'ログイン情報',
-    description: 'パスワードを変更できます。',
+    description: 'パスワードを変更、アカウントを削除できます。',
   },
   {
     href: '/account/questions',

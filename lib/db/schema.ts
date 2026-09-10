@@ -6,30 +6,48 @@ import {
   timestamp,
   integer,
   boolean,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 
 
 // ============================================================
 // Users
 // ============================================================
 
-export const users = pgTable('users', {
-  id: serial('id').primaryKey(),
+export const users = pgTable(
+  'users',
+  {
+    id: serial('id').primaryKey(),
 
-  name: varchar('name', { length: 100 }),
+    name: varchar('name', { length: 100 }),
 
+    email: varchar('email', { length: 255 })
+      .notNull()
+      .unique(),
 
+    passwordHash: text('password_hash').notNull(),
 
-  email: varchar('email', { length: 255 })
-    .notNull()
-    .unique(),
-  passwordHash: text('password_hash').notNull(),
-  role: varchar('role', { length: 20 }).notNull().default('member'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-  deletedAt: timestamp('deleted_at'),
-});
+    role: varchar('role', { length: 20 })
+      .notNull()
+      .default('member'),
+
+    createdAt: timestamp('created_at')
+      .notNull()
+      .defaultNow(),
+
+    updatedAt: timestamp('updated_at')
+      .notNull()
+      .defaultNow(),
+
+    deletedAt: timestamp('deleted_at'),
+  },
+  (table) => ({
+    activeNameUnique: uniqueIndex('users_name_active_unique')
+      .on(table.name)
+      .where(sql`${table.deletedAt} IS NULL`),
+  })
+);
 
 // ============================================================
 // Password Reset Tokens

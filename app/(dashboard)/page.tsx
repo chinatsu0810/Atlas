@@ -16,6 +16,7 @@ import { desc, isNull } from 'drizzle-orm';
 import { countries } from '@/lib/constants/countries';
 
 export default async function DashboardPage() {
+
   const latestQuestions = await db
     .select()
     .from(questions)
@@ -26,70 +27,70 @@ export default async function DashboardPage() {
   return (
     <section className="flex-1 p-4 md:p-6 lg:p-8 max-w-5xl mx-auto">
 
-     {/* Hero */}
-<div className="mb-8 md:mb-10">
-  <div className="grid md:grid-cols-2 gap-6 md:gap-8 items-center">
+      {/* Account deletion message */}
+    
 
-    {/* Left: Text */}
-    <div>
-      <h1 className="text-2xl md:text-4xl font-bold tracking-tight leading-tight mb-4">
-        「実際どうだった？」を、
-              <br />経験した人に聞ける場所。
-      </h1>
+      {/* Hero */}
+      <div className="mb-8 md:mb-10">
+        <div className="grid md:grid-cols-2 gap-6 md:gap-8 items-center">
 
-      <p className="text-sm md:text-base text-muted-foreground leading-7 mb-5 md:mb-6 max-w-2xl">
-        旅行、出張、赴任、留学、移住。
-        <br />
-        世界のいろんな場所での経験を、誰かに聞いてみませんか。
-        <br />
-        <br />
-        Atlasには、さまざまな人の「私はこうだった」が集まります。
-        <br />
-        あなたの「知りたい」に、誰かの経験が答えてくれるかもしれません。
-      </p>
+          {/* Left: Text */}
+          <div>
+            <h1 className="text-2xl md:text-4xl font-bold tracking-tight leading-tight mb-4">
+              「実際どうだった？」を、
+              <br />
+              経験した人に聞ける場所。
+            </h1>
 
-      <div className="flex flex-wrap gap-2 md:gap-3">
-        <Link href="/search">
-          <Button
-            size="lg"
-            className="h-10 px-3 md:px-4 text-sm bg-orange-500 hover:bg-orange-600 text-white"
-          >
-            <Search className="mr-2 h-4 w-4" />
-            質問を検索する
-          </Button>
-        </Link>
+            <p className="text-sm md:text-base text-muted-foreground leading-7 mb-5 md:mb-6 max-w-2xl">
+              旅行、出張、赴任、留学、移住。
+              <br />
+              世界のいろんな場所での経験を、誰かに聞いてみませんか。
+              <br />
+              <br />
+              Atlasには、さまざまな人の「私はこうだった」が集まります。
+              <br />
+              あなたの「知りたい」に、誰かの経験が答えてくれるかもしれません。
+            </p>
 
-        <Link href="/questions/new">
-          <Button
-            size="lg"
-            variant="outline"
-            className="h-10 px-3 md:px-4 text-sm"
-          >
-            <PlusCircle className="mr-2 h-4 w-4" />
-            質問する
-          </Button>
-        </Link>
+            <div className="flex flex-wrap gap-2 md:gap-3">
+              <Link href="/search">
+                <Button
+                  size="lg"
+                  className="h-10 px-3 md:px-4 text-sm bg-orange-500 hover:bg-orange-600 text-white"
+                >
+                  <Search className="mr-2 h-4 w-4" />
+                  質問を検索する
+                </Button>
+              </Link>
+
+              <Link href="/questions/new">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="h-10 px-3 md:px-4 text-sm"
+                >
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  質問する
+                </Button>
+              </Link>
+            </div>
+          </div>
+
+          {/* Right: Illustration */}
+          <div className="relative hidden md:block">
+            <Image
+              src="/images/hero-community.PNG"
+              alt=""
+              width={1200}
+              height={800}
+              className="w-full h-auto"
+              priority
+            />
+          </div>
+
+        </div>
       </div>
-    </div>
-
-   {/* Right: Illustration */}
-<div className="relative hidden md:block">
-      <Image
-        src="/images/hero-community.PNG"
-        alt=""
-        width={1200}
-        height={800}
-        className="w-full h-auto"
-        priority
-      />
-
-      
-    </div>
-
-  </div>
-</div>
-
-   
 
       {/* Countries */}
       <Card className="mb-8 md:mb-10">

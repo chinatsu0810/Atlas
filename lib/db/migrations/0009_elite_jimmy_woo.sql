@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "users_name_active_unique" ON "users" USING btree ("name") WHERE "users"."deleted_at" IS NULL;

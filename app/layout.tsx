@@ -10,35 +10,38 @@ import { Footer } from '@/components/footer';
 import Script from 'next/script';
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://www.atlas-community.jp'),
-
-  title: {
-    default: 'Atlas',
-    template: '%s | Atlas',
-  },
-
+  title: 'Atlas｜海外生活の質問・回答コミュニティ',
   description:
-    '海外生活の疑問や体験談を共有するコミュニティ。インド・中国・アメリカなど世界各国の暮らし情報が見つかります。',
+    '日本と海外をつなぐ、実体験ベースのQ&Aコミュニティ。海外生活、海外赴任・駐在、ワーホリ、留学、移住、海外での子育てなど、海外暮らしの疑問を経験者に質問し、リアルな体験談や回答を見つけられます。',
 
   alternates: {
-    canonical: '/',
+    canonical: 'https://www.atlas-community.jp/',
   },
 
   openGraph: {
-    title: 'Atlas',
+    title: 'Atlas｜海外生活の質問・回答コミュニティ',
     description:
-      '海外生活の疑問や体験談を共有するコミュニティ。',
-    url: 'https://www.atlas-community.jp',
+      '日本と海外をつなぐ、実体験ベースのQ&Aコミュニティ。海外生活、海外赴任・駐在、ワーホリ、留学、移住、海外での子育てなど、海外暮らしの疑問を経験者に質問し、リアルな体験談や回答を見つけられます。',
+    url: 'https://www.atlas-community.jp/',
     siteName: 'Atlas',
     locale: 'ja_JP',
     type: 'website',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'Atlas｜海外生活の質問・回答コミュニティ',
+      },
+    ],
   },
 
   twitter: {
     card: 'summary_large_image',
-    title: 'Atlas',
+    title: 'Atlas｜海外生活の質問・回答コミュニティ',
     description:
-      '海外生活の疑問や体験談を共有するコミュニティ。',
+      '日本と海外をつなぐ、実体験ベースのQ&Aコミュニティ。海外生活、海外赴任・駐在、ワーホリ、留学、移住、海外での子育てなど、海外暮らしの疑問を経験者に質問し、リアルな体験談や回答を見つけられます。',
+    images: ['/og-image.png'],
   },
 };
 

@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, sql, isNull, ne } from 'drizzle-orm';
 import { db } from '@/lib/db/drizzle';
 
 import {
@@ -138,25 +138,45 @@ const signUpSchema = z.object({
 export const signUp = validatedAction(
   signUpSchema,
   async (data, formData) => {
-    const { name, email, password, inviteId } = data;
+   const { name, email, password, inviteId } = data;
 
-    const existingUser = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, email))
-      .limit(1);
+const existingUser = await db
+  .select()
+  .from(users)
+  .where(eq(users.email, email))
+  .limit(1);
 
-    if (existingUser.length > 0) {
-      return {
-        error:
-          'このメールアドレスはすでに登録されています。ログインしてください。',
-        name,
-        email,
-        password,
-      };
-    }
+if (existingUser.length > 0) {
+  return {
+    error:
+      'このメールアドレスはすでに登録されています。ログインしてください。',
+    name,
+    email,
+    password,
+  };
+}
 
-    const passwordHash = await hashPassword(password);
+const existingName = await db
+  .select()
+  .from(users)
+  .where(
+    and(
+      eq(users.name, name),
+      isNull(users.deletedAt)
+    )
+  )
+  .limit(1);
+
+if (existingName.length > 0) {
+  return {
+    error: 'このニックネームは既に使用されています。',
+    name,
+    email,
+    password,
+  };
+}
+
+const passwordHash = await hashPassword(password);
 
     const newUser: NewUser = {
   name,
@@ -420,7 +440,7 @@ export const deleteAccount = validatedActionWithUser(
 
     (await cookies()).delete('session');
 
-    redirect('/sign-in');
+    redirect('/account/deleted');
   }
 );
 
@@ -436,6 +456,27 @@ export const updateAccount = validatedActionWithUser(
   updateAccountSchema,
   async (data, _, user) => {
     const { name, email } = data;
+
+    const existingName = await db
+      .select()
+      .from(users)
+      .where(
+        and(
+          eq(users.name, name),
+          isNull(users.deletedAt),
+          ne(users.id, user.id)
+        )
+      )
+      .limit(1);
+
+    if (existingName.length > 0) {
+      return {
+        error: 'このニックネームは既に使用されています。',
+        name,
+        email,
+      };
+    }
+
     const userWithTeam = await getUserWithTeam(user.id);
 
     await Promise.all([

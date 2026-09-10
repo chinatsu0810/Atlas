@@ -64,6 +64,13 @@
       "when": 1788181919412,
       "tag": "0008_gray_jackpot",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1788919508333,
+      "tag": "0009_elite_jimmy_woo",
+      "breakpoints": true
     }
   ]
 }
