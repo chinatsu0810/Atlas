@@ -163,6 +163,53 @@ export async function createAnswer(formData: FormData) {
   redirect(`/questions/${questionId}`);
 }
 
+export async function toggleFeaturedForAnswer(formData: FormData) {
+  const session = await getSession();
+
+  if (!session) {
+    throw new Error('ログインしてください');
+  }
+
+  const admin = await isAdmin(session.user.id);
+
+  if (!admin) {
+    throw new Error('この操作を実行する権限がありません');
+  }
+
+  const questionId = Number(formData.get('questionId'));
+
+  if (!Number.isInteger(questionId)) {
+    throw new Error('質問が見つかりません');
+  }
+
+  const [question] = await db
+    .select({
+      featuredForAnswer: questions.featuredForAnswer,
+    })
+    .from(questions)
+    .where(
+      and(
+        eq(questions.id, questionId),
+        isNull(questions.deletedAt)
+      )
+    )
+    .limit(1);
+
+  if (!question) {
+    throw new Error('質問が見つかりません');
+  }
+
+  await db
+    .update(questions)
+    .set({
+      featuredForAnswer: !question.featuredForAnswer,
+      updatedAt: new Date(),
+    })
+    .where(eq(questions.id, questionId));
+
+  redirect(`/questions/${questionId}`);
+}
+
 export async function deleteQuestion(formData: FormData) {
   const session = await getSession();
 

@@ -16,6 +16,7 @@ import {
   createAnswer,
   deleteAnswer,
   deleteQuestion,
+  toggleFeaturedForAnswer,
 } from '@/lib/questions/actions';
 
 import { getSession } from '@/lib/auth/session';
@@ -38,6 +39,7 @@ async function getQuestion(id: number) {
       createdAt: questions.createdAt,
       authorId: questions.authorId,
       authorName: users.name,
+      featuredForAnswer: questions.featuredForAnswer,
     })
     .from(questions)
     .leftJoin(users, eq(questions.authorId, users.id))
@@ -196,33 +198,59 @@ export default async function QuestionPage({ params }: Props) {
           </div>
 
           {/* Admin Actions */}
-          {admin && (
-            <div className="mt-4 md:mt-5 flex justify-end">
-              <form action={deleteQuestion}>
-                <input
-                  type="hidden"
-                  name="questionId"
-                  value={question.id}
-                />
+{admin && (
+  <div className="mt-4 md:mt-5 flex justify-end gap-2">
+    <form action={toggleFeaturedForAnswer}>
+      <input
+        type="hidden"
+        name="questionId"
+        value={question.id}
+      />
 
-                <button
-                  type="submit"
-                  className="
-                    rounded-lg
-                    border border-red-300
-                    px-3 py-1.5 md:px-4 md:py-2
-                    text-xs md:text-sm
-                    font-medium
-                    text-red-600
-                    hover:bg-red-50
-                    transition
-                  "
-                >
-                  質問を削除
-                </button>
-              </form>
-            </div>
-          )}
+      <button
+        type="submit"
+        className="
+          rounded-lg
+          border border-orange-300
+          px-3 py-1.5 md:px-4 md:py-2
+          text-xs md:text-sm
+          font-medium
+          text-orange-600
+          hover:bg-orange-50
+          transition
+        "
+      >
+        {question.featuredForAnswer
+          ? '回答募集中から外す'
+          : '回答募集中にする'}
+      </button>
+    </form>
+
+    <form action={deleteQuestion}>
+      <input
+        type="hidden"
+        name="questionId"
+        value={question.id}
+      />
+
+      <button
+        type="submit"
+        className="
+          rounded-lg
+          border border-red-300
+          px-3 py-1.5 md:px-4 md:py-2
+          text-xs md:text-sm
+          font-medium
+          text-red-600
+          hover:bg-red-50
+          transition
+        "
+      >
+        質問を削除
+      </button>
+    </form>
+  </div>
+)}
         </article>
 
         {/* Answers */}

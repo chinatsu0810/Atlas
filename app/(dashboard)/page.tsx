@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { Search, PlusCircle } from 'lucide-react';
+import { Search, PlusCircle, Lightbulb } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -11,19 +11,31 @@ import {
 
 import { db } from '@/lib/db/drizzle';
 import { questions } from '@/lib/db/schema';
-import { desc, isNull } from 'drizzle-orm';
+import { desc, isNull, eq, and } from 'drizzle-orm';
 
 import { countries } from '@/lib/constants/countries';
 
 export default async function DashboardPage() {
 
-  const latestQuestions = await db
-    .select()
-    .from(questions)
-    .where(isNull(questions.deletedAt))
-    .orderBy(desc(questions.createdAt))
-    .limit(10);
+ const latestQuestions = await db
+  .select()
+  .from(questions)
+  .where(isNull(questions.deletedAt))
+  .orderBy(desc(questions.createdAt))
+  .limit(10);
 
+const featuredQuestions = await db
+  .select()
+  .from(questions)
+  .where(
+    and(
+      isNull(questions.deletedAt),
+      eq(questions.featuredForAnswer, true)
+    )
+  )
+  .orderBy(desc(questions.createdAt))
+  .limit(5);
+  
   return (
     <section className="flex-1 p-4 md:p-6 lg:p-8 max-w-5xl mx-auto">
 
@@ -91,6 +103,100 @@ export default async function DashboardPage() {
 
         </div>
       </div>
+
+{/* Featured Questions */}
+<div className="mb-8 md:mb-10">
+  <div
+    className="
+      rounded-2xl
+      border border-orange-200
+      bg-orange-50
+      p-5 md:p-7
+    "
+  >
+    {/* Section Header */}
+    <div className="mb-5 md:mb-6">
+      <div className="flex items-center gap-2 mb-2">
+    <span
+  className="
+    flex h-9 w-9 items-center justify-center
+    rounded-full
+    bg-orange-100
+    text-orange-500
+  "
+>
+  <Lightbulb className="h-5 w-5" />
+</span>
+
+        <h2 className="text-lg md:text-xl font-bold">
+          経験したことがある方、教えてください
+        </h2>
+      </div>
+
+      <p className="text-sm text-muted-foreground leading-6">
+        あなたの「私はこうだった」が、
+        <br className="md:hidden" />
+        誰かの役に立つかもしれません。
+      </p>
+    </div>
+
+    {/* Questions */}
+    <div className="space-y-3">
+      {featuredQuestions.map((question) => (
+        <Link
+          key={question.id}
+          href={`/questions/${question.id}`}
+          className="block"
+        >
+          <div
+            className="
+              rounded-xl
+              border border-orange-100
+              bg-white
+              p-4 md:p-5
+              shadow-sm
+              hover:-translate-y-0.5
+              hover:shadow-md
+              hover:border-orange-200
+              transition
+            "
+          >
+            {/* Badge */}
+            <div className="mb-2.5">
+              <span
+                className="
+                  inline-flex items-center
+                  rounded-full
+                  bg-orange-100
+                  px-2.5 py-1
+                  text-xs font-medium
+                  text-orange-700
+                "
+              >
+                🟠 回答募集中
+              </span>
+            </div>
+
+            {/* Country */}
+            <div className="text-xs md:text-sm text-muted-foreground mb-1.5">
+              {question.country}
+            </div>
+
+            {/* Title */}
+            <h3 className="font-semibold text-base md:text-lg leading-6">
+              {question.title}
+            </h3>
+
+            {/* CTA */}
+            <div className="mt-3 text-sm font-medium text-orange-600">
+              回答する →
+            </div>
+          </div>
+        </Link>
+      ))}
+    </div>
+  </div>
+</div>
 
       {/* Countries */}
       <Card className="mb-8 md:mb-10">

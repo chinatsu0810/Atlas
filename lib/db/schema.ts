@@ -9,6 +9,7 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
+import { desc, isNull, eq, and } from 'drizzle-orm';
 
 
 // ============================================================
@@ -155,6 +156,10 @@ export const questions = pgTable('questions', {
   authorId: integer('author_id')
     .notNull()
     .references(() => users.id),
+
+  featuredForAnswer: boolean('featured_for_answer')
+    .notNull()
+    .default(false),
 
   createdAt: timestamp('created_at')
     .notNull()
