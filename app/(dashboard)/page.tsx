@@ -113,11 +113,28 @@ const featuredQuestions = await db
             />
           </div>
 
-        </div>
+         </div>
       </div>
 
-{/* Featured Questions */}
-<div className="mb-8 md:mb-10">
+{/* Atlasからひとこと */}
+<div className="mb-6 flex justify-center">
+  <div className="inline-flex items-start gap-2 rounded-2xl border border-dashed border-blue-200 bg-blue-50 px-4 py-3 text-sm text-gray-600">
+    <span className="mt-0.5">🌱</span>
+    <p className="leading-5">
+      <span className="font-semibold text-gray-800">
+        Atlasからひとこと
+      </span>
+      <br />
+      ただいま改装中です。まだ質問や回答は少ないですが、
+      実際に使ってもらいながら育てています。
+      ぜひ気軽に質問・回答してみてください。
+    </p>
+  </div>
+</div>
+
+      {/* Featured Questions */}
+      <div className="mb-8 md:mb-10">
+
   <div
     className="
       rounded-2xl
