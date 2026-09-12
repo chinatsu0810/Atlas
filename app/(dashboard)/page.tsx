@@ -1,7 +1,17 @@
 import Image from 'next/image';
+
 import Link from 'next/link';
-import { Search, PlusCircle, Lightbulb } from 'lucide-react';
+
+import {
+  Search,
+  PlusCircle,
+  Lightbulb,
+  Globe2,
+  MessageCircleQuestion,
+} from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
+
 import {
   Card,
   CardContent,
@@ -10,7 +20,9 @@ import {
 } from '@/components/ui/card';
 
 import { db } from '@/lib/db/drizzle';
+
 import { questions } from '@/lib/db/schema';
+
 import { desc, isNull, eq, and } from 'drizzle-orm';
 
 import { countries } from '@/lib/constants/countries';
@@ -199,40 +211,42 @@ const featuredQuestions = await db
 </div>
 
       {/* Countries */}
-      <Card className="mb-8 md:mb-10">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg md:text-xl">
-            国・地域から探す
-          </CardTitle>
-        </CardHeader>
+<Card className="mb-8 md:mb-10">
+  <CardHeader className="pb-3">
+    <CardTitle className="text-lg md:text-xl flex items-center gap-2">
+      <Globe2 className="h-5 w-5 text-orange-500" />
+      国・地域から探す
+    </CardTitle>
+  </CardHeader>
 
-        <CardContent className="pt-0">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-            {countries.map((country) => (
-              <Link
-                key={country}
-                href={`/search?q=${encodeURIComponent(country)}`}
-                className="
-                  border rounded-lg
-                  px-3 py-2.5
-                  text-center text-sm
-                  hover:bg-muted
-                  transition
-                "
-              >
-                {country}
-              </Link>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+  <CardContent className="pt-0">
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+      {countries.map((country) => (
+        <Link
+          key={country}
+          href={`/search?q=${encodeURIComponent(country)}`}
+          className="
+            border rounded-lg
+            px-3 py-2.5
+            text-center text-sm
+            hover:bg-muted
+            transition
+          "
+        >
+          {country}
+        </Link>
+      ))}
+    </div>
+  </CardContent>
+</Card>
 
       {/* Latest Questions */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-3">
-          <CardTitle className="text-lg md:text-xl">
-            最新の質問
-          </CardTitle>
+          <CardTitle className="text-lg md:text-xl flex items-center gap-2">
+  <MessageCircleQuestion className="h-5 w-5 text-orange-500" />
+  最新の質問
+</CardTitle>
 
           <Link
             href="/search"
