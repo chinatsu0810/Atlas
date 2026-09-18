@@ -9,7 +9,6 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
-import { desc, isNull, eq, and } from 'drizzle-orm';
 
 
 // ============================================================
@@ -243,6 +242,34 @@ export const answers = pgTable('answers', {
 });
 
 
+
+
+export const experiences = pgTable('experiences', {
+  id: serial('id').primaryKey(),
+
+  title: varchar('title', { length: 200 }).notNull(),
+
+  content: text('content').notNull(),
+
+  country: varchar('country', { length: 100 }).notNull(),
+
+  authorId: integer('author_id')
+    .notNull()
+    .references(() => users.id),
+
+  createdAt: timestamp('created_at')
+    .notNull()
+    .defaultNow(),
+
+  updatedAt: timestamp('updated_at')
+    .notNull()
+    .defaultNow(),
+
+  deletedAt: timestamp('deleted_at'),
+});
+
+
+
 // ============================================================
 // Invitations
 // ============================================================
@@ -353,6 +380,7 @@ export const usersRelations = relations(users, ({ many }) => ({
 
   questions: many(questions),
   answers: many(answers),
+  experiences: many(experiences),
 
   contacts: many(contacts),
   contactStatusHistory: many(contactStatusHistory),
@@ -551,3 +579,18 @@ export enum ActivityType {
   INVITE_TEAM_MEMBER = 'INVITE_TEAM_MEMBER',
   ACCEPT_INVITATION = 'ACCEPT_INVITATION',
 }
+
+
+
+export const experiencesRelations = relations(
+  experiences,
+  ({ one }) => ({
+    author: one(users, {
+      fields: [experiences.authorId],
+      references: [users.id],
+    }),
+  }),
+);
+
+export type Experience = typeof experiences.$inferSelect;
+export type NewExperience = typeof experiences.$inferInsert;

@@ -1,26 +1,27 @@
 ﻿'use server';
 
 import { redirect } from 'next/navigation';
-
 import {
   and,
   desc,
   eq,
   ilike,
+  inArray,
   isNull,
-  or,
   notInArray,
+  or,
 } from 'drizzle-orm';
 
 import { countries } from '@/lib/constants/countries';
+import { getSession } from '@/lib/auth/session';
+import { isAdmin } from '@/lib/auth/permissions';
 import { db } from '@/lib/db/drizzle';
 import {
   answers,
   questionTags,
   questions,
+  tags,
 } from '@/lib/db/schema';
-import { getSession } from '@/lib/auth/session';
-import { isAdmin } from '@/lib/auth/permissions';
 
 export async function createQuestion(formData: FormData) {
   const session = await getSession();
@@ -324,13 +325,20 @@ export async function searchQuestions(keyword: string) {
     .map((word) => word.trim())
     .filter(Boolean);
 
-  const conditions = keywords.map((word) =>
-    or(
-      ilike(questions.title, `%${word}%`),
-      ilike(questions.content, `%${word}%`),
-      ilike(questions.country, `%${word}%`)
-    )
+const conditions = keywords.map((word) => {
+  const matchingQuestionIds = db
+    .select({ questionId: questionTags.questionId })
+    .from(questionTags)
+    .innerJoin(tags, eq(tags.id, questionTags.tagId))
+    .where(ilike(tags.name, `%${word}%`));
+
+  return or(
+    ilike(questions.title, `%${word}%`),
+    ilike(questions.content, `%${word}%`),
+    ilike(questions.country, `%${word}%`),
+    inArray(questions.id, matchingQuestionIds),
   );
+});
 
   return await db
     .select()

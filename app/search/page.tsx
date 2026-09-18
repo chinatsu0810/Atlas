@@ -1,271 +1,188 @@
 import Link from 'next/link';
-import { desc, isNull } from 'drizzle-orm';
-
+import { and, desc, eq, ilike, isNull, or } from 'drizzle-orm';
+import { Search } from 'lucide-react';
 import { db } from '@/lib/db/drizzle';
-import { questions } from '@/lib/db/schema';
+import { questions, questionTags, tags } from '@/lib/db/schema';
 
-import { searchQuestions } from '@/lib/questions/actions';
-import { Button } from '@/components/ui/button';
-import { BackButton } from '@/components/back-button';
+const filterTags = [
+  '駐在',
+  '帯同',
+  '移住',
+  '留学',
+  'ワーホリ',
+  '子育て',
+  '教育',
+  '仕事',
+  '住まい',
+  'ビザ',
+];
+
+
+type SearchPageProps = {
+  searchParams: Promise<{
+    q?: string;
+  }>;
+};
 
 export default async function SearchPage({
   searchParams,
-}: {
-  searchParams: Promise<{ q?: string }>;
-}) {
+}: SearchPageProps) {
   const params = await searchParams;
-  const keyword = params.q?.trim() ?? '';
+  const query = params.q?.trim() ?? '';
+  const keyword = `%${query}%`;
 
-  const results = keyword
-  ? await searchQuestions(keyword)
-  : await db
-      .select()
-      .from(questions)
-      .where(isNull(questions.deletedAt))
-      .orderBy(desc(questions.createdAt))
-      .limit(10);
+  const rows = await db
+    .select({
+      question: questions,
+      tagName: tags.name,
+    })
+    .from(questions)
+    .leftJoin(
+      questionTags,
+      eq(questionTags.questionId, questions.id),
+    )
+    .leftJoin(tags, eq(tags.id, questionTags.tagId))
+    .where(
+      and(
+        isNull(questions.deletedAt),
+        query
+          ? or(
+              ilike(questions.title, keyword),
+              ilike(questions.content, keyword),
+              ilike(questions.country, keyword),
+              ilike(tags.name, keyword),
+            )
+          : undefined,
+      ),
+    )
+    .orderBy(desc(questions.createdAt));
+
+  const resultMap = new Map<
+    number,
+    {
+      question: (typeof rows)[number]['question'];
+      tagNames: string[];
+    }
+  >();
+
+  for (const row of rows) {
+    const existing = resultMap.get(row.question.id);
+
+    if (existing) {
+      if (row.tagName && !existing.tagNames.includes(row.tagName)) {
+        existing.tagNames.push(row.tagName);
+      }
+      continue;
+    }
+
+    resultMap.set(row.question.id, {
+      question: row.question,
+      tagNames: row.tagName ? [row.tagName] : [],
+    });
+  }
+
+  const results = Array.from(resultMap.values());
 
   return (
-    <main className="min-h-screen px-4 py-5 md:px-6 md:py-6">
-      <div className="max-w-4xl mx-auto">
-
-        {/* 上の戻る */}
-        <div className="mb-5">
-          <BackButton />
-        </div>
-
-      {/* Header */}
-<div className="mb-4">
-  <h1 className="text-xl md:text-2xl font-bold tracking-tight">
-    海外生活で「知りたいこと」を検索
-  </h1>
-</div>
-
-        {/* Search */}
+    <main className="min-h-screen bg-[#F8FBFD] px-4 py-8 text-[#123B5D] md:px-6">
+      <div className="mx-auto max-w-[1120px]">
         <form
           action="/search"
           method="get"
-          className="flex gap-2 mb-6"
+          className="mb-8 flex items-center gap-3 rounded-2xl border border-[#C9DFEA] bg-white p-2 shadow-sm"
         >
+          <Search className="ml-3 h-5 w-5 shrink-0 text-[#1478B8]" />
+
           <input
-            name="q"
             type="search"
-            defaultValue={keyword}
-            placeholder="例：インド ローカル校 小学生 赴任"
-            className="
-              flex-1
-              min-w-0
-              border
-              rounded-lg
-              px-3
-              py-2.5
-              text-sm
-              md:text-base
-              focus:outline-none
-              focus:ring-2
-              focus:ring-orange-500
-            "
+            name="q"
+            defaultValue={query}
+            placeholder="国・都市・タグ・キーワードで検索"
+            className="min-w-0 flex-1 bg-transparent px-1 py-3 text-base outline-none placeholder:text-[#8AA0B0]"
           />
 
-          <Button
+          <button
             type="submit"
-            className="
-              shrink-0
-              bg-orange-500
-              hover:bg-orange-600
-              text-white
-              px-4
-            "
+            className="rounded-full bg-[#1478B8] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#0D5686]"
           >
             検索
-          </Button>
+          </button>
         </form>
 
-        {/* キーワードなし：最新の質問 */}
-        {!keyword && (
-          <section>
-            <div className="mb-4">
-              <h2 className="text-lg md:text-xl font-bold">
-                最新の質問
-              </h2>
+        <h1 className="text-xl font-bold text-[#123B5D]">
+          {query ? `「${query}」の検索結果` : '経験を探す'}
+        </h1>
 
-              <p className="text-sm text-muted-foreground mt-1">
-                最近投稿された質問を表示しています。
-              </p>
-            </div>
+        <p className="mt-2 text-sm text-[#668096]">
+          {results.length}件の質問が見つかりました
+        </p>
 
-            {results.length === 0 ? (
-              <div className="border rounded-lg p-6 text-center">
-                <p className="text-sm text-muted-foreground mb-4">
-                  まだ質問がありません。
+<div className="mt-5 flex flex-wrap gap-2">
+  <span className="mr-1 self-center text-sm font-semibold text-[#406783]">
+    絞り込み
+  </span>
+
+  {filterTags.map((tag) => (
+    <Link
+      key={tag}
+      href={`/search?q=${encodeURIComponent(tag)}`}
+      className={`rounded-full border px-3 py-1.5 text-sm transition ${
+        query === tag
+          ? 'border-[#1478B8] bg-[#1478B8] text-white'
+          : 'border-[#D8E7F0] bg-white text-[#35617E] hover:bg-[#F1F8FC]'
+      }`}
+    >
+      {tag}
+    </Link>
+  ))}
+</div>
+
+
+
+        {results.length === 0 ? (
+          <div className="mt-6 rounded-2xl border border-dashed border-[#C9DFEA] bg-white px-6 py-16 text-center">
+            <p className="text-sm text-[#668096]">
+              該当する質問が見つかりませんでした。
+            </p>
+          </div>
+        ) : (
+          <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {results.map(({ question, tagNames }) => (
+              <Link
+                key={question.id}
+                href={`/questions/${question.id}`}
+                className="block rounded-2xl border border-[#E1EBF1] bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+              >
+                <div className="mb-3 flex flex-wrap gap-2">
+                  <span className="rounded-full bg-[#E8F6FC] px-2.5 py-1 text-xs text-[#1478B8]">
+                    {question.country}
+                  </span>
+
+                  {tagNames.map((tagName) => (
+                    <span
+                      key={tagName}
+                      className="rounded-full bg-[#F1F5F8] px-2.5 py-1 text-xs text-[#557086]"
+                    >
+                      {tagName}
+                    </span>
+                  ))}
+                </div>
+
+                <h2 className="line-clamp-2 text-base font-semibold leading-7 text-[#174C73]">
+                  {question.title}
+                </h2>
+
+                <p className="mt-2 line-clamp-3 text-sm leading-6 text-[#668096]">
+                  {question.content}
                 </p>
 
-                <Link href="/questions/new">
-                  <Button
-                    className="
-                      bg-orange-500
-                      hover:bg-orange-600
-                      text-white
-                    "
-                  >
-                    最初の質問をする
-                  </Button>
-                </Link>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {results.map((question) => (
-                  <Link
-                    key={question.id}
-                    href={`/questions/${question.id}`}
-                    className="
-                      block
-                      border
-                      rounded-lg
-                      p-4
-                      hover:bg-muted
-                      transition
-                    "
-                  >
-                    <div className="text-xs text-muted-foreground mb-1.5">
-                      {question.country}
-                    </div>
-
-                    <h2 className="text-base md:text-lg font-semibold mb-1.5">
-                      {question.title}
-                    </h2>
-
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {question.content}
-                    </p>
-
-                    <div className="mt-3 text-sm text-orange-600">
-                      質問と回答を見る →
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
-
-            {results.length > 0 && (
-              <div className="mt-6 text-center">
-                <Link
-                  href="/questions/new"
-                  className="
-                    inline-block
-                    border
-                    rounded-lg
-                    px-5
-                    py-2.5
-                    text-sm
-                    hover:bg-muted
-                    transition
-                  "
-                >
-                  質問を投稿する
-                </Link>
-              </div>
-            )}
-          </section>
-        )}
-
-        {/* キーワードあり・結果なし */}
-        {keyword && results.length === 0 && (
-          <div className="border rounded-lg p-6 md:p-6 text-center">
-            <h2 className="text-lg md:text-xl font-semibold mb-3">
-              「{keyword}」に近い質問が見つかりませんでした
-            </h2>
-
-            <p className="text-sm md:text-base text-muted-foreground mb-5">
-              まだAtlasに回答がないのかもしれません。
-              <br />
-              あなたの状況を質問してみませんか？
-            </p>
-
-            <Link href="/questions/new">
-              <Button
-                className="
-                  bg-orange-500
-                  hover:bg-orange-600
-                  text-white
-                "
-              >
-                この内容で質問する
-              </Button>
-            </Link>
+                <p className="mt-4 text-xs text-[#8AA0B0]">
+                  {new Date(question.createdAt).toLocaleDateString('ja-JP')}
+                </p>
+              </Link>
+            ))}
           </div>
         )}
-
-        {/* キーワードあり・結果あり */}
-        {keyword && results.length > 0 && (
-          <section>
-            <div className="mb-4">
-              <p className="text-sm text-muted-foreground">
-                「{keyword}」に関連する質問
-              </p>
-
-              <p className="text-xl md:text-2xl font-bold mt-0.5">
-                {results.length}件
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              {results.map((question) => (
-                <Link
-                  key={question.id}
-                  href={`/questions/${question.id}`}
-                  className="
-                    block
-                    border
-                    rounded-lg
-                    p-4
-                    hover:bg-muted
-                    transition
-                  "
-                >
-                  <div className="text-xs text-muted-foreground mb-1.5">
-                    {question.country}
-                  </div>
-
-                  <h2 className="text-base md:text-lg font-semibold mb-1.5">
-                    {question.title}
-                  </h2>
-
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {question.content}
-                  </p>
-
-                  <div className="mt-3 text-sm text-orange-600">
-                    質問と回答を見る →
-                  </div>
-                </Link>
-              ))}
-            </div>
-
-            <div className="mt-8 border-t pt-6 text-center">
-              <p className="text-sm text-muted-foreground mb-4 leading-6">
-  知りたい情報が見つからなければ、
-  <br className="md:hidden" />
-  質問してみてください。
-</p>
-
-              <Link href="/questions/new">
-                <Button
-                  variant="outline"
-                  className="border-orange-500 text-orange-600 hover:bg-orange-50"
-                >
-                  質問を投稿する
-                </Button>
-              </Link>
-            </div>
-          </section>
-        )}
-
-        {/* 下の戻る */}
-        <div className="mt-8 pb-6">
-          <BackButton />
-        </div>
-
       </div>
     </main>
   );
