@@ -1,46 +1,34 @@
-﻿import Link from 'next/link';
-import { and, desc, eq, inArray, isNull } from 'drizzle-orm';
+import Link from 'next/link';
+import { and, desc, inArray, isNull, notInArray, or } from 'drizzle-orm';
 import { MessageCircle, PlusCircle } from 'lucide-react';
 import { db } from '@/lib/db/drizzle';
 import { questions, questionTags, tags } from '@/lib/db/schema';
-
-const countryOptions = [
-  '中国',
-  'インド',
-  'アメリカ',
-  'インドネシア',
-  'オーストラリア',
-  'シンガポール',
-  'タイ',
-];
-
-const themeOptions = [
-  '駐在',
-  '帯同',
-  '移住',
-  '留学',
-  'ワーホリ',
-  '子育て',
-  '教育',
-  '仕事',
-  '住まい',
-  'ビザ',
-];
+import { countries } from '@/lib/constants/countries';
+import { BrowseFilterForm } from '@/components/browse-filter-form';
 
 type QuestionsPageProps = {
   searchParams: Promise<{
-    country?: string;
-    theme?: string;
+    country?: string | string[];
+    tagIds?: string | string[];
     page?: string;
   }>;
 };
+
+function toArray(value?: string | string[]): string[] {
+  if (!value) return [];
+  return Array.isArray(value) ? value : [value];
+}
 
 export default async function QuestionsPage({
   searchParams,
 }: QuestionsPageProps) {
   const params = await searchParams;
-  const country = params.country?.trim() ?? '';
-  const theme = params.theme?.trim() ?? '';
+
+  const selectedCountries = toArray(params.country);
+
+  const selectedTagIds = toArray(params.tagIds)
+    .map((value) => Number(value))
+    .filter((id) => Number.isInteger(id) && id > 0);
 
   const parsedPage = Number.parseInt(params.page ?? '1', 10);
   const currentPage = Number.isNaN(parsedPage)
@@ -50,18 +38,61 @@ export default async function QuestionsPage({
   const pageSize = 20;
   const offset = (currentPage - 1) * pageSize;
 
+  const tagList = await db
+    .select({
+      id: tags.id,
+      name: tags.name,
+      slug: tags.slug,
+      category: tags.category,
+    })
+    .from(tags);
+
   const conditions = [isNull(questions.deletedAt)];
 
-  if (country) {
-    conditions.push(eq(questions.country, country));
+  if (selectedCountries.length > 0) {
+    const hasOther = selectedCountries.includes('その他');
+    const regularCountries = selectedCountries.filter(
+      (country) => country !== 'その他'
+    );
+
+    const countryConditions = [];
+
+    if (regularCountries.length > 0) {
+      countryConditions.push(
+        inArray(questions.country, regularCountries)
+      );
+    }
+
+    if (hasOther) {
+      const majorCountries = countries.filter(
+        (country) => country !== 'その他'
+      );
+
+      countryConditions.push(
+        notInArray(questions.country, majorCountries)
+      );
+    }
+
+    conditions.push(or(...countryConditions)!);
   }
 
-  if (theme) {
+  const selectedTagIdsByCategory = new Map<string, number[]>();
+
+  for (const tagId of selectedTagIds) {
+    const tag = tagList.find((item) => item.id === tagId);
+
+    if (!tag) continue;
+
+    const current = selectedTagIdsByCategory.get(tag.category) ?? [];
+    current.push(tagId);
+    selectedTagIdsByCategory.set(tag.category, current);
+  }
+
+  for (const categoryTagIds of selectedTagIdsByCategory.values()) {
     const matchingQuestionIds = db
       .select({ questionId: questionTags.questionId })
       .from(questionTags)
-      .innerJoin(tags, eq(tags.id, questionTags.tagId))
-      .where(eq(tags.name, theme));
+      .where(inArray(questionTags.tagId, categoryTagIds));
 
     conditions.push(inArray(questions.id, matchingQuestionIds));
   }
@@ -80,13 +111,13 @@ export default async function QuestionsPage({
   const createPageUrl = (page: number) => {
     const query = new URLSearchParams();
 
-    if (country) {
-      query.set('country', country);
-    }
+    selectedCountries.forEach((country) => {
+      query.append('country', country);
+    });
 
-    if (theme) {
-      query.set('theme', theme);
-    }
+    selectedTagIds.forEach((tagId) => {
+      query.append('tagIds', String(tagId));
+    });
 
     query.set('page', String(page));
 
@@ -117,59 +148,13 @@ export default async function QuestionsPage({
           </Link>
         </div>
 
-        <form
+        <BrowseFilterForm
           action="/questions"
-          method="get"
-          className="mb-6 flex flex-wrap items-end gap-3 rounded-2xl border border-[#DCEAF2] bg-white p-4 shadow-sm"
-        >
-          <label className="flex min-w-[180px] flex-1 flex-col gap-1.5 text-sm font-medium text-[#406783]">
-            国
-            <select
-              name="country"
-              defaultValue={country}
-              className="rounded-lg border border-[#D8E7F0] bg-white px-3 py-2 text-sm font-normal text-[#35617E] outline-none focus:border-[#1478B8]"
-            >
-              <option value="">すべての国</option>
-              {countryOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="flex min-w-[180px] flex-1 flex-col gap-1.5 text-sm font-medium text-[#406783]">
-            テーマ
-            <select
-              name="theme"
-              defaultValue={theme}
-              className="rounded-lg border border-[#D8E7F0] bg-white px-3 py-2 text-sm font-normal text-[#35617E] outline-none focus:border-[#1478B8]"
-            >
-              <option value="">すべてのテーマ</option>
-              {themeOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <button
-            type="submit"
-            className="rounded-lg bg-[#1478B8] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#0D5686]"
-          >
-            絞り込む
-          </button>
-
-          {(country || theme) && (
-            <Link
-              href="/questions"
-              className="rounded-lg border border-[#D8E7F0] px-5 py-2.5 text-sm text-[#52738B] hover:bg-[#F1F8FC]"
-            >
-              クリア
-            </Link>
-          )}
-        </form>
+          countries={countries}
+          selectedCountries={selectedCountries}
+          tags={tagList}
+          selectedTagIds={selectedTagIds}
+        />
 
         {visibleQuestions.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-[#C9DFEA] bg-white px-6 py-16 text-center">

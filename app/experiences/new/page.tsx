@@ -1,3 +1,76 @@
-export default function ExperienceNewPage() {
-  return <div>準備中</div>;
+import Link from 'next/link';
+
+import { getSession } from '@/lib/auth/session';
+import { db } from '@/lib/db/drizzle';
+import { tags } from '@/lib/db/schema';
+
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+
+import { BackButton } from '@/components/back-button';
+import ExperienceForm from './experience-form';
+
+export default async function NewExperiencePage() {
+  const session = await getSession();
+
+  const tagList = await db
+    .select({
+      id: tags.id,
+      name: tags.name,
+      slug: tags.slug,
+      category: tags.category,
+    })
+    .from(tags);
+
+  return (
+    <section className="flex-1 p-4 lg:p-8 max-w-3xl mx-auto">
+      <div className="mb-6">
+        <BackButton />
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>経験談を投稿する</CardTitle>
+        </CardHeader>
+
+        {!session ? (
+          <CardContent>
+            <div className="space-y-6">
+              <p className="text-sm text-muted-foreground">
+                経験談を投稿するにはログインが必要です。
+              </p>
+
+              <div className="flex gap-3">
+                <Link
+                  href="/sign-in?redirect=/experiences/new"
+                  className="inline-flex items-center justify-center rounded-md bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600"
+                >
+                  ログイン
+                </Link>
+
+                <Link
+                  href="/sign-up?redirect=/experiences/new"
+                  className="inline-flex items-center justify-center rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted"
+                >
+                  新規登録
+                </Link>
+              </div>
+            </div>
+          </CardContent>
+        ) : (
+          <CardContent>
+            <ExperienceForm tags={tagList} />
+          </CardContent>
+        )}
+      </Card>
+
+      <div className="mt-8 mb-16">
+        <BackButton />
+      </div>
+    </section>
+  );
 }

@@ -82,18 +82,18 @@ async function Header() {
             href="/questions"
             className="whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-medium text-[#53616B] transition hover:bg-[#F1F6F5] hover:text-[#1F5F5B]"
           >
-            回答募集中の質問を探す
+            質問を探す
           </Link>
 
          <Link
-  href="/questions/new"
+  href="/experiences/new"
   className="whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-medium text-[#53616B] transition hover:bg-[#F1F6F5] hover:text-[#1F5F5B]"
 >
   経験談を投稿する
 </Link>
 
           <Link
-            href="/questions"
+            href="/experiences"
             className="whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-medium text-[#53616B] transition hover:bg-[#F1F6F5] hover:text-[#1F5F5B]"
           >
             経験談を探す
@@ -153,7 +153,7 @@ async function Header() {
         </Link>
 
       <Link
-  href="/questions/new"
+  href="/experiences/new"
   className="whitespace-nowrap rounded-full bg-[#1F5F5B] px-4 py-2 text-xs font-semibold text-white"
 >
   経験を投稿する

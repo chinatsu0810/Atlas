@@ -343,7 +343,7 @@ export default async function QuestionPage({ params }: Props) {
               </p>
 
               <Link
-                href="/sign-in"
+                href={`/sign-in?redirect=/questions/${question.id}`}
                 className="
                   inline-block
                   bg-orange-500

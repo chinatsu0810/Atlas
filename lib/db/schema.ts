@@ -175,25 +175,39 @@ export const questions = pgTable('questions', {
 // Tags
 // ============================================================
 
-export const tags = pgTable('tags', {
-  id: serial('id').primaryKey(),
+export const tags = pgTable(
+  'tags',
+  {
+    id: serial('id').primaryKey(),
 
-  name: varchar('name', { length: 50 })
-    .notNull()
-    .unique(),
+    name: varchar('name', { length: 50 }).notNull(),
 
-  slug: varchar('slug', { length: 50 })
-    .notNull()
-    .unique(),
+    slug: varchar('slug', { length: 50 })
+      .notNull()
+      .unique(),
 
-  isActive: boolean('is_active')
-    .notNull()
-    .default(true),
+    // 'type' = 経験タイプ（駐在員・留学生など）, 'family' = 家族構成, 'theme' = テーマ
+    category: varchar('category', { length: 20 })
+      .notNull()
+      .default('theme'),
 
-  createdAt: timestamp('created_at')
-    .notNull()
-    .defaultNow(),
-});
+    isActive: boolean('is_active')
+      .notNull()
+      .default(true),
+
+    createdAt: timestamp('created_at')
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    // カテゴリごとに「その他」のような同名タグを許容するため、
+    // ユニーク制約は name 単体ではなく name + category にする
+    nameCategoryUnique: uniqueIndex('tags_name_category_unique').on(
+      table.name,
+      table.category
+    ),
+  })
+);
 
 
 // ============================================================
@@ -206,6 +220,22 @@ export const questionTags = pgTable('question_tags', {
   questionId: integer('question_id')
     .notNull()
     .references(() => questions.id),
+
+  tagId: integer('tag_id')
+    .notNull()
+    .references(() => tags.id),
+});
+
+// ============================================================
+// Experience Tags
+// ============================================================
+
+export const experienceTags = pgTable('experience_tags', {
+  id: serial('id').primaryKey(),
+
+  experienceId: integer('experience_id')
+    .notNull()
+    .references(() => experiences.id),
 
   tagId: integer('tag_id')
     .notNull()
@@ -453,6 +483,7 @@ export const tagsRelations = relations(
   tags,
   ({ many }) => ({
     questionTags: many(questionTags),
+    experienceTags: many(experienceTags),
   })
 );
 
@@ -466,6 +497,21 @@ export const questionTagsRelations = relations(
 
     tag: one(tags, {
       fields: [questionTags.tagId],
+      references: [tags.id],
+    }),
+  })
+);
+
+export const experienceTagsRelations = relations(
+  experienceTags,
+  ({ one }) => ({
+    experience: one(experiences, {
+      fields: [experienceTags.experienceId],
+      references: [experiences.id],
+    }),
+
+    tag: one(tags, {
+      fields: [experienceTags.tagId],
       references: [tags.id],
     }),
   })
@@ -584,13 +630,24 @@ export enum ActivityType {
 
 export const experiencesRelations = relations(
   experiences,
-  ({ one }) => ({
+  ({ one, many }) => ({
     author: one(users, {
       fields: [experiences.authorId],
       references: [users.id],
     }),
+
+    experienceTags: many(experienceTags),
   }),
 );
 
 export type Experience = typeof experiences.$inferSelect;
 export type NewExperience = typeof experiences.$inferInsert;
+
+export type Tag = typeof tags.$inferSelect;
+export type NewTag = typeof tags.$inferInsert;
+
+export type QuestionTag = typeof questionTags.$inferSelect;
+export type NewQuestionTag = typeof questionTags.$inferInsert;
+
+export type ExperienceTag = typeof experienceTags.$inferSelect;
+export type NewExperienceTag = typeof experienceTags.$inferInsert;

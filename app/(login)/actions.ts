@@ -31,6 +31,18 @@ import { cookies } from 'next/headers';
 import { createCheckoutSession } from '@/lib/payments/stripe';
 import { getUser, getUserWithTeam } from '@/lib/db/queries';
 
+// ログインフォームに渡す redirect は内部の相対パスのみ許可する
+// （外部URLへのオープンリダイレクトを防ぐため）
+function getSafeRedirectPath(redirectTo: string | null): string | null {
+  if (!redirectTo) return null;
+  if (redirectTo === 'checkout') return null;
+  if (!redirectTo.startsWith('/') || redirectTo.startsWith('//')) {
+    return null;
+  }
+
+  return redirectTo;
+}
+
 import {
   validatedAction,
   validatedActionWithUser,
@@ -119,6 +131,12 @@ export const signIn = validatedAction(
         team: foundTeam,
         priceId,
       });
+    }
+
+    const safeRedirect = getSafeRedirectPath(redirectTo);
+
+    if (safeRedirect) {
+      redirect(safeRedirect);
     }
 
     redirect('/dashboard');
@@ -297,6 +315,12 @@ const passwordHash = await hashPassword(password);
         team: createdTeam,
         priceId,
       });
+    }
+
+    const safeRedirect = getSafeRedirectPath(redirectTo);
+
+    if (safeRedirect) {
+      redirect(safeRedirect);
     }
 
     redirect('/dashboard');

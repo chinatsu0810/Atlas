@@ -3,15 +3,13 @@ import type { ReactNode } from 'react';
 import {
   ArrowRight,
   CircleUserRound,
-  Heart,
   MessageCircle,
-  MessageSquare,
   Search,
   Sparkles,
 } from 'lucide-react';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import { db } from '@/lib/db/drizzle';
-import { questions } from '@/lib/db/schema';
+import { experiences, questions, users } from '@/lib/db/schema';
 
 const popularSearchTags = [
   'インド',
@@ -23,31 +21,41 @@ const popularSearchTags = [
   'ビザ',
 ];
 
-const experienceTags = [
-  '駐在',
-  '帯同',
-  '移住',
-  '留学',
+const experienceTypeTags = [
+  '駐在員',
+  '帯同家族',
+  '移住者',
+  '留学生',
   'ワーホリ',
-  '子育て',
-  '教育',
-  '仕事',
-  '住まい',
-  'ビザ',
+  '現地採用',
+  '起業',
+  'フリーランス',
+  'ノマド',
+  '永住者',
+  '帰国済み',
 ];
 
 const countryTags = [
-  '中国',
-  'インド',
   'アメリカ',
-  'インドネシア',
-  'オーストラリア',
   'シンガポール',
+  'インド',
+  '中国',
+  'オーストラリア',
   'タイ',
+  'イギリス',
+  'カナダ',
   'その他',
 ];
 
-const familyTags = ['子あり', '夫婦', '単身'];
+const familyTags = [
+  '単身',
+  '夫婦',
+  '未就学児あり',
+  '小学生あり',
+  '中高生あり',
+  '妊娠中',
+  'ペットあり',
+];
 
 const categoryCards = [
   {
@@ -84,51 +92,6 @@ const categoryCards = [
     description: '手続き・必要書類・\n注意点など',
     href: '/search?q=ビザ',
     color: 'bg-[#EEF8FF]',
-  },
-];
-
-const dummyExperiences = [
-  {
-    id: 'exp-1',
-    country: 'タイ',
-    place: 'バンコク',
-    theme: '子育て',
-    tags: ['駐在'],
-    title: 'バンコクでの子育て｜保育園と習い事のリアル',
-    excerpt:
-      '3歳の子どもを連れての駐在生活。現地の保育園に入れるまでの流れや、実際に通わせてみて感じたこと。',
-    author: '30代・女性・駐在',
-    date: '2025/02/10',
-    likes: 21,
-    comments: 4,
-  },
-  {
-    id: 'exp-2',
-    country: 'フランス',
-    place: 'パリ',
-    theme: '学校',
-    tags: ['留学'],
-    title: 'フランス留学で感じた語学学校の違い',
-    excerpt:
-      'フランスに語学留学して半年。いくつかの学校を比較しましたが、それぞれに特徴がありました。',
-    author: '20代・女性・留学',
-    date: '2025/01/25',
-    likes: 14,
-    comments: 3,
-  },
-  {
-    id: 'exp-3',
-    country: 'カナダ',
-    place: '',
-    theme: '住まい',
-    tags: ['移住'],
-    title: 'カナダ移住で家を探すときの注意点',
-    excerpt:
-      '実際に住んでみてわかった、家探しで気をつけたことや契約時のポイントをまとめました。',
-    author: '40代・男性・移住',
-    date: '2025/01/12',
-    likes: 9,
-    comments: 1,
   },
 ];
 
@@ -171,32 +134,17 @@ function SectionHeading({
 function CardMetaRow({
   author,
   date,
-  likes,
-  comments,
 }: {
   author: string;
   date: string;
-  likes: number;
-  comments: number;
 }) {
   return (
-    <div className="mt-3 flex items-center justify-between border-t border-[#E8EEF2] pt-3 text-xs text-[#7890A2]">
+    <div className="mt-3 flex items-center border-t border-[#E8EEF2] pt-3 text-xs text-[#7890A2]">
       <div className="flex min-w-0 items-center gap-1">
         <CircleUserRound className="h-3.5 w-3.5 shrink-0" />
         <span className="truncate">{author}</span>
         <span>・</span>
         <span className="shrink-0">{date}</span>
-      </div>
-
-      <div className="flex shrink-0 items-center gap-2">
-        <span className="flex items-center gap-1">
-          <Heart className="h-3.5 w-3.5" />
-          {likes}
-        </span>
-        <span className="flex items-center gap-1">
-          <MessageSquare className="h-3.5 w-3.5" />
-          {comments}
-        </span>
       </div>
     </div>
   );
@@ -214,6 +162,21 @@ export default async function DashboardPage() {
     )
     .orderBy(desc(questions.createdAt))
     .limit(4);
+
+  const newExperiences = await db
+    .select({
+      id: experiences.id,
+      title: experiences.title,
+      content: experiences.content,
+      country: experiences.country,
+      createdAt: experiences.createdAt,
+      authorName: users.name,
+    })
+    .from(experiences)
+    .leftJoin(users, eq(experiences.authorId, users.id))
+    .where(isNull(experiences.deletedAt))
+    .orderBy(desc(experiences.createdAt))
+    .limit(3);
 
   return (
     <div className="min-h-screen bg-[#F8FBFD] text-[#123B5D]">
@@ -329,7 +292,7 @@ className="relative left-1/2 h-[225px] w-[105vw] -translate-x-1/2 bg-contain bg-
             </h2>
 
             <div className="flex flex-wrap gap-2">
-              {experienceTags.map((tag) => (
+              {experienceTypeTags.map((tag) => (
                 <Link
                   key={tag}
                   href={`/search?q=${encodeURIComponent(tag)}`}
@@ -424,39 +387,45 @@ className="relative left-1/2 h-[225px] w-[105vw] -translate-x-1/2 bg-contain bg-
             icon={<Sparkles className="h-5 w-5" />}
             title="新着の経験"
             description="みんなのリアルな体験談が続々と投稿されています"
+            href="/experiences"
           />
 
-          <div className="grid gap-4 md:grid-cols-3">
-            {dummyExperiences.map((experience) => (
-              <article
-                key={experience.id}
-                className="overflow-hidden rounded-xl border border-[#E1EBF1] bg-white shadow-sm"
-              >
-                <div className="h-24 bg-gradient-to-br from-[#8CC5E4] to-[#377DA4]" />
+          {newExperiences.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-[#C9DDE9] bg-white py-10 text-center text-sm text-[#678096]">
+              まだ投稿された経験談はありません。
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-3">
+              {newExperiences.map((experience) => (
+                <Link
+                  key={experience.id}
+                  href={`/experiences/${experience.id}`}
+                  className="block overflow-hidden rounded-xl border border-[#E1EBF1] bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+                >
+                  <div className="h-24 bg-gradient-to-br from-[#8CC5E4] to-[#377DA4]" />
 
-                <div className="p-4">
-                  <span className="rounded-full bg-[#E8F6FC] px-2.5 py-1 text-xs text-[#1478B8]">
-                    {experience.theme}
-                  </span>
+                  <div className="p-4">
+                    <span className="rounded-full bg-[#E8F6FC] px-2.5 py-1 text-xs text-[#1478B8]">
+                      {experience.country}
+                    </span>
 
-                  <h3 className="mt-3 line-clamp-2 text-sm font-bold leading-6 text-[#174C73]">
-                    {experience.title}
-                  </h3>
+                    <h3 className="mt-3 line-clamp-2 text-sm font-bold leading-6 text-[#174C73]">
+                      {experience.title}
+                    </h3>
 
-                  <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#6D8496]">
-                    {experience.excerpt}
-                  </p>
+                    <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#6D8496]">
+                      {experience.content}
+                    </p>
 
-                  <CardMetaRow
-                    author={experience.author}
-                    date={experience.date}
-                    likes={experience.likes}
-                    comments={experience.comments}
-                  />
-                </div>
-              </article>
-            ))}
-          </div>
+                    <CardMetaRow
+                      author={experience.authorName || '匿名'}
+                      date={new Date(experience.createdAt).toLocaleDateString('ja-JP')}
+                    />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </section>
       </main>
     </div>

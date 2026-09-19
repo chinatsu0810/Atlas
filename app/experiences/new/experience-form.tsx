@@ -1,8 +1,8 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 
-import { createQuestion } from '@/lib/questions/actions';
+import { createExperience } from '@/lib/experiences/actions';
 import TagSelector from '@/components/tag-selector';
 import { Button } from '@/components/ui/button';
 import { countries } from '@/lib/constants/countries';
@@ -14,11 +14,11 @@ type Tag = {
   category: string;
 };
 
-type QuestionFormProps = {
+type ExperienceFormProps = {
   tags: Tag[];
 };
 
-export default function QuestionForm({ tags }: QuestionFormProps) {
+export default function ExperienceForm({ tags }: ExperienceFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState('');
 
@@ -30,7 +30,7 @@ export default function QuestionForm({ tags }: QuestionFormProps) {
         setIsSubmitting(true);
 
         try {
-          await createQuestion(formData);
+          await createExperience(formData);
         } catch (error) {
           setIsSubmitting(false);
           throw error;
@@ -43,14 +43,14 @@ export default function QuestionForm({ tags }: QuestionFormProps) {
           htmlFor="title"
           className="block text-sm font-medium mb-2"
         >
-          質問タイトル
+          タイトル
         </label>
 
         <input
           id="title"
           name="title"
           type="text"
-          placeholder="例：デリーで子ども向けの習い事はありますか？"
+          placeholder="例：バンコクでの子育て｜保育園と習い事のリアル"
           className="w-full border rounded-lg p-3 bg-background"
           disabled={isSubmitting}
           required
@@ -112,13 +112,13 @@ export default function QuestionForm({ tags }: QuestionFormProps) {
           htmlFor="content"
           className="block text-sm font-medium mb-2"
         >
-          質問の本文
+          経験談の本文
         </label>
 
         <textarea
           id="content"
           name="content"
-          placeholder="経験者から具体的な回答をもらえるよう、 国・地域や状況をできるだけ詳しく書いてみましょう。"
+          placeholder="現地での暮らしや体験について、できるだけ具体的に書いてみましょう。"
           rows={8}
           className="w-full border rounded-lg p-3 bg-background"
           disabled={isSubmitting}
@@ -140,7 +140,7 @@ export default function QuestionForm({ tags }: QuestionFormProps) {
           disabled={isSubmitting}
           className="bg-orange-500 hover:bg-orange-600 text-white"
         >
-          {isSubmitting ? '送信中…' : '質問する'}
+          {isSubmitting ? '送信中…' : '経験談を投稿する'}
         </Button>
       </div>
     </form>

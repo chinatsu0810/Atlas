@@ -4,6 +4,7 @@ import {
   LockKeyhole,
   MessageCircle,
   MessagesSquare,
+  Sparkles,
   Mail,
   ChevronRight,
 } from 'lucide-react';
@@ -37,6 +38,12 @@ const menuItems = [
     icon: MessagesSquare,
     title: '自分の回答',
     description: '投稿した回答を確認できます。',
+  },
+  {
+    href: '/account/experiences',
+    icon: Sparkles,
+    title: '自分の経験',
+    description: '投稿した経験談を確認できます。',
   },
 ];
 

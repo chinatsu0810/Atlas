@@ -22,6 +22,7 @@ export default async function NewQuestionPage() {
       id: tags.id,
       name: tags.name,
       slug: tags.slug,
+      category: tags.category,
     })
     .from(tags);
 
@@ -45,14 +46,14 @@ export default async function NewQuestionPage() {
 
               <div className="flex gap-3">
                 <Link
-                  href="/sign-in"
+                  href="/sign-in?redirect=/questions/new"
                   className="inline-flex items-center justify-center rounded-md bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600"
                 >
                   ログイン
                 </Link>
 
                 <Link
-                  href="/sign-up"
+                  href="/sign-up?redirect=/questions/new"
                   className="inline-flex items-center justify-center rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted"
                 >
                   新規登録
