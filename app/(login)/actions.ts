@@ -139,7 +139,7 @@ export const signIn = validatedAction(
       redirect(safeRedirect);
     }
 
-    redirect('/dashboard');
+    redirect('/');
   }
 );
 
@@ -323,7 +323,7 @@ const passwordHash = await hashPassword(password);
       redirect(safeRedirect);
     }
 
-    redirect('/dashboard');
+    redirect('/');
   }
 );
 
