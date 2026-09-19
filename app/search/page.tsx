@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { and, desc, eq, ilike, isNull, or } from 'drizzle-orm';
+import { and, desc, eq, ilike, inArray, isNull, or } from 'drizzle-orm';
 import { Search } from 'lucide-react';
 import { db } from '@/lib/db/drizzle';
 import { questions, questionTags, tags } from '@/lib/db/schema';
@@ -29,7 +29,29 @@ export default async function SearchPage({
 }: SearchPageProps) {
   const params = await searchParams;
   const query = params.q?.trim() ?? '';
-  const keyword = `%${query}%`;
+
+  // 全角・半角どちらのスペースにも対応して複数ワード検索できるようにする
+  const keywords = query
+    .split(/\s+/)
+    .map((word) => word.trim())
+    .filter(Boolean);
+
+  const keywordConditions = keywords.map((word) => {
+    const pattern = `%${word}%`;
+
+    const matchingQuestionIds = db
+      .select({ questionId: questionTags.questionId })
+      .from(questionTags)
+      .innerJoin(tags, eq(tags.id, questionTags.tagId))
+      .where(ilike(tags.name, pattern));
+
+    return or(
+      ilike(questions.title, pattern),
+      ilike(questions.content, pattern),
+      ilike(questions.country, pattern),
+      inArray(questions.id, matchingQuestionIds),
+    );
+  });
 
   const rows = await db
     .select({
@@ -42,19 +64,7 @@ export default async function SearchPage({
       eq(questionTags.questionId, questions.id),
     )
     .leftJoin(tags, eq(tags.id, questionTags.tagId))
-    .where(
-      and(
-        isNull(questions.deletedAt),
-        query
-          ? or(
-              ilike(questions.title, keyword),
-              ilike(questions.content, keyword),
-              ilike(questions.country, keyword),
-              ilike(tags.name, keyword),
-            )
-          : undefined,
-      ),
-    )
+    .where(and(isNull(questions.deletedAt), ...keywordConditions))
     .orderBy(desc(questions.createdAt));
 
   const resultMap = new Map<

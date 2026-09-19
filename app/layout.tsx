@@ -2,11 +2,12 @@ import './globals.css';
 import type { Metadata, Viewport } from 'next';
 import { Manrope } from 'next/font/google';
 import Link from 'next/link';
-import { Globe } from 'lucide-react';
+import { ChevronDown, CircleUserRound, Globe } from 'lucide-react';
 import { getUser, getTeamForUser } from '@/lib/db/queries';
 import { getSession } from '@/lib/auth/session';
 import { SWRConfig } from 'swr';
 import { Footer } from '@/components/footer';
+import { HeaderNavDesktop, HeaderNavMobile } from '@/components/header-nav';
 import Script from 'next/script';
 
 export const metadata: Metadata = {
@@ -63,52 +64,17 @@ async function Header() {
           <span className="text-xl font-bold tracking-tight">Atlas</span>
         </Link>
 
-        <nav className="hidden min-w-0 flex-1 items-center justify-center gap-1 md:flex">
-          <Link
-            href="/"
-            className="whitespace-nowrap rounded-full bg-[#E8F5F3] px-5 py-2.5 text-sm font-semibold text-[#1F5F5B]"
-          >
-            ホーム
-          </Link>
-
-          <Link
-  href="/questions/new"
-  className="whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-medium text-[#53616B] transition hover:bg-[#F1F6F5] hover:text-[#1F5F5B]"
->
-  質問を投稿する
-</Link>
-
-          <Link
-            href="/questions"
-            className="whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-medium text-[#53616B] transition hover:bg-[#F1F6F5] hover:text-[#1F5F5B]"
-          >
-            質問を探す
-          </Link>
-
-         <Link
-  href="/experiences/new"
-  className="whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-medium text-[#53616B] transition hover:bg-[#F1F6F5] hover:text-[#1F5F5B]"
->
-  経験談を投稿する
-</Link>
-
-          <Link
-            href="/experiences"
-            className="whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-medium text-[#53616B] transition hover:bg-[#F1F6F5] hover:text-[#1F5F5B]"
-          >
-            経験談を探す
-          </Link>
-
-
-        </nav>
+        <HeaderNavDesktop />
 
         <div className="ml-auto flex shrink-0 items-center gap-2">
           {session ? (
             <Link
               href="/account"
-              className="whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium text-[#53616B] transition hover:bg-[#F1F6F5]"
+              className="flex items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium text-[#53616B] transition hover:bg-[#F1F6F5]"
             >
               マイページ
+              <ChevronDown className="h-4 w-4" />
+              <CircleUserRound className="h-6 w-6 text-[#1478B8]" />
             </Link>
           ) : (
             <>
@@ -130,35 +96,7 @@ async function Header() {
         </div>
       </div>
 
-      <nav className="flex gap-1 overflow-x-auto border-t border-[#F1F3F2] px-4 py-2 md:hidden">
-        <Link
-          href="/"
-          className="whitespace-nowrap rounded-full bg-[#E8F5F3] px-4 py-2 text-xs font-semibold text-[#1F5F5B]"
-        >
-          ホーム
-        </Link>
-
-    <Link
-  href="/questions/new"
-  className="whitespace-nowrap rounded-full bg-[#1F5F5B] px-4 py-2 text-xs font-semibold text-white"
->
-  質問を投稿する
-</Link>
-
-        <Link
-          href="/questions"
-          className="whitespace-nowrap rounded-full px-4 py-2 text-xs text-[#53616B]"
-        >
-          質問する
-        </Link>
-
-      <Link
-  href="/experiences/new"
-  className="whitespace-nowrap rounded-full bg-[#1F5F5B] px-4 py-2 text-xs font-semibold text-white"
->
-  経験を投稿する
-</Link>
-      </nav>
+      <HeaderNavMobile />
     </header>
   );
 }
