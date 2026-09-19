@@ -248,24 +248,36 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* リリース歴 */}
-        <section id="releases" className="scroll-mt-8 border-t pt-12">
-          <h2 className="text-2xl font-bold text-gray-900">
-            リリース歴
-          </h2>
+      {/* リリース歴 */}
+<section id="releases" className="scroll-mt-8 border-t pt-12">
+  <h2 className="text-2xl font-bold text-gray-900">
+    リリース歴
+  </h2>
 
-          <div className="mt-6 space-y-6">
-            <div className="border-l-2 border-gray-200 pl-5">
-              <p className="text-sm font-semibold text-gray-900">
-                2026年9月
-              </p>
+  <div className="mt-6 space-y-6">
 
-              <p className="mt-1 text-sm leading-6 text-gray-600">
-                Atlasを公開しました。
-              </p>
-            </div>
-          </div>
-        </section>
+    <div className="border-l-2 border-gray-200 pl-5">
+      <p className="text-sm font-semibold text-gray-900">
+        2026年9月
+      </p>
+
+      <p className="mt-1 text-sm leading-6 text-gray-600">
+        Atlasを公開しました。
+      </p>
+    </div>
+
+    <div className="border-l-2 border-gray-200 pl-5">
+      <p className="text-sm font-semibold text-gray-900">
+        2026年9月
+      </p>
+
+      <p className="mt-1 text-sm leading-6 text-gray-600">
+        Atlasリデザイン版を公開しました。
+      </p>
+    </div>
+
+  </div>
+</section>
 
         {/* お問い合わせ */}
         <section id="contact" className="scroll-mt-8 border-t pt-12">
