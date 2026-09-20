@@ -13,20 +13,34 @@ import type { ZodType } from 'zod';
 import type { Employee } from './employee';
 import { buildEmployeePersona } from './employee';
 
-if (!process.env.ANTHROPIC_API_KEY) {
-  throw new Error('ANTHROPIC_API_KEY environment variable is not set');
-}
-
-export const anthropicClient = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
-
 export const DEFAULT_SKILL_MODEL = 'claude-opus-5';
 
 // Skill実行中に起きたエラーの汎用クラス。
 // チーム固有のエラークラス（例: SocialDraftGenerationError）への変換は
 // 呼び出し元（各チームのservice.ts等）の責務とする。
 export class SkillCallError extends Error {}
+
+// クライアントは、実際にAIを呼ぶ時点で作る。読み込み時（import時）にAPIキーの有無を検査すると、
+// キーが未設定の環境（Vercelのプレビューなど）で、AIと無関係なページも含めてビルドが失敗するため。
+let anthropicClient: Anthropic | null = null;
+
+function getAnthropicClient(): Anthropic {
+  if (anthropicClient) return anthropicClient;
+
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+
+  if (!apiKey) {
+    console.error('runSkill: ANTHROPIC_API_KEY environment variable is not set');
+
+    throw new SkillCallError(
+      'AIサービスが設定されていません（ANTHROPIC_API_KEY）。管理者に連絡してください。'
+    );
+  }
+
+  anthropicClient = new Anthropic({ apiKey });
+
+  return anthropicClient;
+}
 
 export type SkillContext<TInput> = {
   employee: Employee;
@@ -59,10 +73,12 @@ export async function runSkill<TInput, TOutput>(
 
 ${skill.buildTaskInstructions(ctx)}`;
 
+  const client = getAnthropicClient();
+
   let response: Anthropic.Message;
 
   try {
-    response = await anthropicClient.messages.create({
+    response = await client.messages.create({
       model: skill.model ?? DEFAULT_SKILL_MODEL,
       max_tokens: skill.maxTokens ?? 8192,
       system,
