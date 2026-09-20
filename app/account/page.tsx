@@ -6,6 +6,7 @@ import {
   MessagesSquare,
   Sparkles,
   Mail,
+  Building2,
   ChevronRight,
 } from 'lucide-react';
 
@@ -113,32 +114,61 @@ export default async function AccountPage() {
               運営
             </p>
 
-            <Link
-              href="/account/contacts"
-              className="block"
-            >
-              <Card className="cursor-pointer transition hover:bg-muted/50">
-                <CardContent className="flex items-center gap-3 p-4 md:gap-4 md:p-5">
+            <div className="space-y-2 md:space-y-3">
+              <Link
+                href="/account/contacts"
+                className="block"
+              >
+                <Card className="cursor-pointer transition hover:bg-muted/50">
+                  <CardContent className="flex items-center gap-3 p-4 md:gap-4 md:p-5">
 
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-100 md:h-10 md:w-10">
-                    <Mail className="h-4 w-4 text-orange-500 md:h-5 md:w-5" />
-                  </div>
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-100 md:h-10 md:w-10">
+                      <Mail className="h-4 w-4 text-orange-500 md:h-5 md:w-5" />
+                    </div>
 
-                  <div className="min-w-0 flex-1">
-                    <h2 className="text-sm font-bold md:text-base">
-                      お問い合わせ
-                    </h2>
+                    <div className="min-w-0 flex-1">
+                      <h2 className="text-sm font-bold md:text-base">
+                        お問い合わせ
+                      </h2>
 
-                    <p className="mt-0.5 text-xs text-muted-foreground md:text-sm">
-                      受け付けたお問い合わせを確認できます。
-                    </p>
-                  </div>
+                      <p className="mt-0.5 text-xs text-muted-foreground md:text-sm">
+                        受け付けたお問い合わせを確認できます。
+                      </p>
+                    </div>
 
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground md:h-5 md:w-5" />
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground md:h-5 md:w-5" />
 
-                </CardContent>
-              </Card>
-            </Link>
+                  </CardContent>
+                </Card>
+              </Link>
+
+              <Link
+                href="/office"
+                className="block"
+              >
+                <Card className="cursor-pointer transition hover:bg-muted/50">
+                  <CardContent className="flex items-center gap-3 p-4 md:gap-4 md:p-5">
+
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-100 md:h-10 md:w-10">
+                      <Building2 className="h-4 w-4 text-orange-500 md:h-5 md:w-5" />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <h2 className="text-sm font-bold md:text-base">
+                        Atlas Office
+                      </h2>
+
+                      <p className="mt-0.5 text-xs text-muted-foreground md:text-sm">
+                        AI社員たちが働くバーチャルオフィス。経営判断会議やThreads運用もここから行えます。
+                      </p>
+                    </div>
+
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground md:h-5 md:w-5" />
+
+                  </CardContent>
+                </Card>
+              </Link>
+            </div>
           </div>
         )}
 

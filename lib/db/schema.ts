@@ -7,6 +7,7 @@ import {
   integer,
   boolean,
   uniqueIndex,
+  jsonb,
 } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 
@@ -651,3 +652,212 @@ export type NewQuestionTag = typeof questionTags.$inferInsert;
 
 export type ExperienceTag = typeof experienceTags.$inferSelect;
 export type NewExperienceTag = typeof experienceTags.$inferInsert;
+
+
+// ============================================================
+// Social Workflows
+// SNS運用AI（Threads）: リサーチ→執筆→監査→人間承認→投稿記録
+// ============================================================
+
+export const socialWorkflows = pgTable('social_workflows', {
+  id: serial('id').primaryKey(),
+
+  platform: varchar('platform', { length: 20 })
+    .notNull()
+    .default('threads'),
+
+  topic: varchar('topic', { length: 200 }).notNull(),
+
+  audience: varchar('audience', { length: 200 }).notNull(),
+
+  tone: varchar('tone', { length: 20 }).notNull(),
+
+  promoteAtlas: boolean('promote_atlas').notNull().default(true),
+
+  // ResearchResult | null（実行時にlib/ai/social側でzod検証する）
+  researchResult: jsonb('research_result'),
+
+  // PostPlan | null（企画担当の出力。実行時にlib/ai/social側でzod検証する）
+  postPlan: jsonb('post_plan'),
+
+  draft: text('draft').notNull().default(''),
+
+  // string[]
+  hashtags: jsonb('hashtags').notNull().default([]),
+
+  // AuditResult | null
+  auditResult: jsonb('audit_result'),
+
+  // SocialWorkflowStatus
+  status: varchar('status', { length: 20 })
+    .notNull()
+    .default('researching'),
+
+  createdBy: integer('created_by')
+    .notNull()
+    .references(() => users.id),
+
+  approvedBy: integer('approved_by').references(() => users.id),
+
+  approvedAt: timestamp('approved_at'),
+
+  postedAt: timestamp('posted_at'),
+
+  createdAt: timestamp('created_at')
+    .notNull()
+    .defaultNow(),
+
+  updatedAt: timestamp('updated_at')
+    .notNull()
+    .defaultNow(),
+});
+
+export const socialWorkflowsRelations = relations(
+  socialWorkflows,
+  ({ one }) => ({
+    createdByUser: one(users, {
+      fields: [socialWorkflows.createdBy],
+      references: [users.id],
+      relationName: 'socialWorkflowCreatedBy',
+    }),
+
+    approvedByUser: one(users, {
+      fields: [socialWorkflows.approvedBy],
+      references: [users.id],
+      relationName: 'socialWorkflowApprovedBy',
+    }),
+  })
+);
+
+export type SocialWorkflowRow = typeof socialWorkflows.$inferSelect;
+export type NewSocialWorkflowRow = typeof socialWorkflows.$inferInsert;
+
+
+// ============================================================
+// Management Meetings
+// 経営判断室の会議システム: 会長が案件投入→社長整理→経営判断室発言→
+// （必要なら）会長への質問/回答→一次案作成→監査室レビュー→社長総括→会長へ返却。
+// AIは最後まで決定せず、必ず会長の判断で締めくくる。
+// ============================================================
+
+export const managementMeetings = pgTable('management_meetings', {
+  id: serial('id').primaryKey(),
+
+  // 会長が持ち込んだ案件
+  topic: text('topic').notNull(),
+
+  // MeetingStage（lib/ai/management/types.ts）
+  stage: varchar('stage', { length: 30 }).notNull().default('framing'),
+
+  // 会長の最終判断（自由記述）。closed時に記録する
+  ownerDecision: text('owner_decision'),
+
+  createdBy: integer('created_by')
+    .notNull()
+    .references(() => users.id),
+
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  closedAt: timestamp('closed_at'),
+});
+
+export const meetingMessages = pgTable('meeting_messages', {
+  id: serial('id').primaryKey(),
+
+  meetingId: integer('meeting_id')
+    .notNull()
+    .references(() => managementMeetings.id, { onDelete: 'cascade' }),
+
+  // 'employee' | 'owner' | 'system'（lib/ai/management/types.ts）
+  authorType: varchar('author_type', { length: 20 }).notNull(),
+
+  // Employee.id（会長発言・systemメッセージの場合はnull）
+  employeeId: varchar('employee_id', { length: 50 }),
+
+  // どの工程の発言か（MeetingStage）
+  stage: varchar('stage', { length: 30 }).notNull(),
+
+  // 発言内容。Skillごとの構造化出力、または会長・systemの自由記述をjsonbで保持する
+  content: jsonb('content').notNull(),
+
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const managementMeetingsRelations = relations(
+  managementMeetings,
+  ({ one, many }) => ({
+    createdByUser: one(users, {
+      fields: [managementMeetings.createdBy],
+      references: [users.id],
+    }),
+
+    messages: many(meetingMessages),
+  })
+);
+
+export const meetingMessagesRelations = relations(
+  meetingMessages,
+  ({ one }) => ({
+    meeting: one(managementMeetings, {
+      fields: [meetingMessages.meetingId],
+      references: [managementMeetings.id],
+    }),
+  })
+);
+
+export type ManagementMeetingRow = typeof managementMeetings.$inferSelect;
+export type NewManagementMeetingRow = typeof managementMeetings.$inferInsert;
+
+export type MeetingMessageRow = typeof meetingMessages.$inferSelect;
+export type NewMeetingMessageRow = typeof meetingMessages.$inferInsert;
+
+// ============================================================
+// Threads Connections
+// Threads API連携（運営のThreadsアカウント）。アクセストークンは暗号化して保存する。
+// 連携するのは運営の1アカウントのみを想定し、再連携時は同じ threads_user_id の行を更新する。
+// ============================================================
+
+export const threadsConnections = pgTable(
+  'threads_connections',
+  {
+    id: serial('id').primaryKey(),
+
+    // 連携操作を行った運営ユーザー
+    connectedBy: integer('connected_by')
+      .notNull()
+      .references(() => users.id),
+
+    threadsUserId: varchar('threads_user_id', { length: 64 }).notNull(),
+
+    username: varchar('username', { length: 100 }),
+
+    // 長期アクセストークン（AES-256-GCMで暗号化。lib/threads/crypto.ts）
+    accessTokenEncrypted: text('access_token_encrypted').notNull(),
+
+    // 最後にトークンを取得・更新した日時。長期トークンは60日で失効し、
+    // 失効後は更新できない（再連携が必要）
+    tokenRefreshedAt: timestamp('token_refreshed_at').notNull().defaultNow(),
+    tokenExpiresAt: timestamp('token_expires_at').notNull(),
+
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    threadsUserIdUnique: uniqueIndex('threads_connections_threads_user_id_unique').on(
+      table.threadsUserId
+    ),
+  })
+);
+
+export const threadsConnectionsRelations = relations(
+  threadsConnections,
+  ({ one }) => ({
+    connectedByUser: one(users, {
+      fields: [threadsConnections.connectedBy],
+      references: [users.id],
+    }),
+  })
+);
+
+export type ThreadsConnectionRow = typeof threadsConnections.$inferSelect;
+export type NewThreadsConnectionRow = typeof threadsConnections.$inferInsert;
