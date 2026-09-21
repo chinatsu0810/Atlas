@@ -170,7 +170,7 @@ CREATE INDEX "account_deletions_pending_idx"
 10. `users` を墓標化する。
 11. （本人退会のみ）セッション cookie を削除して `/account/deleted` へ。
 
-### 30日後のパージ（日次ジョブ）
+### 30日後のパージ（日次ジョブ。実装済み）
 
 `purge_after <= now` かつ `purged_at IS NULL` の行ごとに、次の順で削除する（子テーブルが先）。
 
@@ -178,6 +178,13 @@ CREATE INDEX "account_deletions_pending_idx"
 2. （モードBのみ）`experience_tags` → `experiences`
 3. `contact_status_history` → `contacts`（`user_id` が対象）
 4. `purged_at` を設定する。
+
+残すもの: `users` の行（墓標）、`activity_logs`、`teams`、`account_deletions` の記録、タグ本体。
+
+- 実装: [lib/retention/account-deletions.ts](../lib/retention/account-deletions.ts)
+- 削除記録1件ごとに別のトランザクションで実行する。1件が失敗しても他の記録に影響せず、失敗した記録は `purged_at` が入らないので、翌日のジョブで再実行される。
+- 何度実行しても安全（期限前・実行済みの記録は何もしない）。
+- 失敗があった場合、cron ルートは HTTP 500 を返す（Vercel のログで気づけるように）。
 
 ### 保持期間切れのお問い合わせの削除（実装済み）
 
@@ -190,9 +197,12 @@ CREATE INDEX "account_deletions_pending_idx"
 
 ### ジョブの構成
 
-日次ジョブは1つのルート `/api/cron/purge-expired-data` にまとめ、Vercel Cron（`vercel.json`、毎日 03:00 JST）から呼ぶ。`CRON_SECRET` で保護する。退会の30日後パージも、実装時にこのルートに足す。
+日次ジョブは1つのルート `/api/cron/purge-expired-data` にまとめ、Vercel Cron（`vercel.json`、毎日 03:00 JST）から呼ぶ。`CRON_SECRET` で保護する。次の2つを実行する（片方が失敗しても、もう片方は実行する）。
 
-- 実装: [lib/retention/contacts.ts](../lib/retention/contacts.ts)、[app/api/cron/purge-expired-data/route.ts](../app/api/cron/purge-expired-data/route.ts)
+1. 退会から30日たったユーザーのデータのパージ（上記）
+2. 保持期間を過ぎたお問い合わせの削除（下記）
+
+- 実装: [app/api/cron/purge-expired-data/route.ts](../app/api/cron/purge-expired-data/route.ts)、[lib/retention/contacts.ts](../lib/retention/contacts.ts)、[lib/retention/account-deletions.ts](../lib/retention/account-deletions.ts)
 - `?dryRun=1` を付けると、削除せず対象件数だけ返す。
 - `CRON_SECRET` が未設定なら401を返し、何も削除しない。
 
@@ -308,8 +318,9 @@ CREATE INDEX "account_deletions_pending_idx"
 | 保持期間切れのお問い合わせの削除（日次ジョブ、`vercel.json`、`CRON_SECRET`） | **実装済み。未デプロイ・未実行。** dry-run で本番DBの対象件数を確認済み（0件） |
 | 表示側の変更（作者名を「退会したユーザー」に）と `signIn` の `deletedAt` チェック | **実装済み。未コミット。** 現状の問題の2と4を塞ぐ。本番DBに退会済みユーザーがいない（会員3人、退会0人）ため、実データでの表示確認はまだできていない |
 | `account_deletions` のマイグレーション（[0018_account_deletions.sql](../lib/db/migrations/0018_account_deletions.sql)） | **本番DBに適用済み**（2026-09-21。SQLを1トランザクションで直接実行）。テーブルと部分インデックスを確認済みで、行は0件。**`npm run db:migrate` は使わないこと**（下の注意を参照） |
-| `deleteUser` 共通関数（[lib/account/delete-user.ts](../lib/account/delete-user.ts)） | **実装済み。どこからも呼んでいない。** 動作確認は [verify-delete-user.ts](../lib/account/verify-delete-user.ts)（後述） |
-| それ以外（`deleteAccount` の差し替え、パージ、運営削除の画面、ポリシー） | 未着手 |
+| `deleteUser` 共通関数（[lib/account/delete-user.ts](../lib/account/delete-user.ts)） | **実装済み。どこからも呼んでいない。** 動作確認は [verify-account-deletion.ts](../lib/account/verify-account-deletion.ts)（後述） |
+| 30日後のパージ（[lib/retention/account-deletions.ts](../lib/retention/account-deletions.ts)、日次ジョブに組み込み済み） | **実装済み。未デプロイ・本番では未実行。** 削除の記録がまだ0件なので、デプロイしても何も消えない |
+| それ以外（`deleteAccount` の差し替え、運営削除の画面、ポリシー） | 未着手 |
 
 ### `deleteUser` の実装メモ
 
@@ -328,15 +339,20 @@ CREATE INDEX "account_deletions_pending_idx"
 ### 動作確認（ロールバック付き）
 
 ```bash
-npx tsx lib/account/verify-delete-user.ts
+npx tsx lib/account/verify-account-deletion.ts
 ```
 
-テストデータの作成から検証まで、すべて1つのトランザクションの中で行い、最後に必ずロールバックする。接続先のDBに行は残らない（`serial` の採番は進む）。次を確認している（68項目）。
+テストデータの作成から検証まで、すべて1つのトランザクションの中で行い、最後に必ずロールバックする。接続先のDBに行は残らない（`serial` の採番は進む）。次を確認している（108項目）。
 
 - 本人退会（完全削除）: 墓標化、削除の記録、関連テーブルの処理、他のユーザーに触れていないこと、二重実行の拒否
 - 運営削除（コンテンツを残す・再登録拒否）: コンテンツが残ること、招待の扱い、メールのHMAC
 - ガード: 各拒否条件で、何も変わらないこと
 - 他のメンバーがいるチームから、オーナーでないメンバーが抜けるケース
+- パージ（完全削除）: 質問・回答（他人の回答を含む）・経験談・タグ・お問い合わせが消え、他人のデータ・墓標・アクセス履歴・チームが残ること。2回目は何もしないこと
+- パージ（コンテンツを残す削除）: お問い合わせだけが消えること
+- パージ（期限前）: 何も消えず、期限ちょうどで実行されること
+
+cron ルート自体は、`?dryRun=1` で確認できる（認証なし・シークレット違い・未設定は401、正しいシークレットなら対象件数が返る）。
 
 実行時は本番DBに接続する（`POSTGRES_URL`）。実行後に、テストデータが残っていないことも確認する。
 

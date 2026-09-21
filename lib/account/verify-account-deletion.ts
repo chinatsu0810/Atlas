@@ -1,5 +1,5 @@
-// deleteUser の動作確認スクリプト。
-//   npx tsx lib/account/verify-delete-user.ts
+// ユーザー削除（deleteUser）と、30日後のパージ（purgeAccountDeletion）の動作確認スクリプト。
+//   npx tsx lib/account/verify-account-deletion.ts
 //
 // テストデータの作成から検証まで、すべて1つのトランザクションの中で行い、最後に必ずロールバックする。
 // そのため、接続先のDBに行は残らない（ただし serial の採番は進む）。
@@ -15,14 +15,21 @@ import {
   answers,
   contactStatusHistory,
   contacts,
+  experienceTags,
   experiences,
   invitations,
   passwordResetTokens,
+  questionTags,
   questions,
+  tags,
   teamMembers,
   teams,
   users,
 } from '@/lib/db/schema';
+import {
+  dueDeletionCondition,
+  purgeAccountDeletionInTransaction,
+} from '@/lib/retention/account-deletions';
 import { hashEmailForBlocklist } from './email-hash';
 import {
   PURGE_DAYS,
@@ -130,6 +137,23 @@ async function seedTarget(tx: Tx, ownerId: number) {
     .values({ title: 'e', content: 'e', country: 'JP', authorId: target.id })
     .returning();
 
+  // 他人の質問への、他人の回答（パージで巻き込まれてはいけない）
+  const [otherAnswer] = await tx
+    .insert(answers)
+    .values({ questionId: otherQuestion.id, content: 'a3', authorId: other.id })
+    .returning();
+
+  // タグ。本人の質問・経験談と、他人の質問に付ける
+  const [tag] = await tx
+    .insert(tags)
+    .values({ name: `verify-${RUN}-${seq}`, slug: `verify-${RUN}-${seq}` })
+    .returning();
+  await tx.insert(questionTags).values([
+    { questionId: question.id, tagId: tag.id },
+    { questionId: otherQuestion.id, tagId: tag.id },
+  ]);
+  await tx.insert(experienceTags).values({ experienceId: experience.id, tagId: tag.id });
+
   const contactUpdatedAt = new Date('2026-01-01T00:00:00Z');
   const [contact] = await tx
     .insert(contacts)
@@ -183,6 +207,8 @@ async function seedTarget(tx: Tx, ownerId: number) {
     answerByOther,
     otherQuestion,
     answerByTarget,
+    otherAnswer,
+    tag,
     experience,
     contact,
     otherContact,
@@ -382,9 +408,113 @@ async function main() {
   });
 
   // ---------------------------------------------------------------
+  // 削除の記録の purge_after を過去にずらして、パージを実行する
+  async function deleteThenMakeDue(tx: Tx, params: DeleteUserParams) {
+    const r = await deleteUserInTransaction(tx, params);
+    if (!r.ok) throw new Error(`deleteUser failed: ${JSON.stringify(r)}`);
+    await tx
+      .update(accountDeletions)
+      .set({ purgeAfter: new Date(Date.now() - 1000) })
+      .where(eq(accountDeletions.id, r.deletionId));
+    return r.deletionId;
+  }
+
+  await inRollback('パージ（完全削除）', async (tx) => {
+    const owner = await createUser(tx, 'owner', 'owner');
+    const s = await seedTarget(tx, owner.id);
+    const deletionId = await deleteThenMakeDue(tx, { userId: s.target.id, mode: 'full', actor: { type: 'self' } });
+
+    const due = await tx.select({ id: accountDeletions.id }).from(accountDeletions).where(dueDeletionCondition(new Date()));
+    check('期限切れの削除記録が、対象として選ばれる', due.some((d) => d.id === deletionId), due);
+
+    const counts = await purgeAccountDeletionInTransaction(tx, deletionId, new Date());
+    check('パージが実行される', counts !== null);
+    if (!counts) return;
+
+    check('件数: 質問1・質問タグ1', counts.questions === 1 && counts.questionTags === 1, counts);
+    check('件数: 回答2（本人の質問への他人の回答 + 本人の回答）', counts.answers === 2, counts);
+    check('件数: 経験談1・経験談タグ1', counts.experiences === 1 && counts.experienceTags === 1, counts);
+    check('件数: お問い合わせ1・対応履歴1', counts.contacts === 1 && counts.contactStatusHistory === 1, counts);
+
+    check('本人の質問が消えている', (await tx.select().from(questions).where(eq(questions.authorId, s.target.id))).length === 0);
+    check('本人の質問への他人の回答が消えている', (await tx.select().from(answers).where(eq(answers.id, s.answerByOther.id))).length === 0);
+    check('本人の回答が消えている', (await tx.select().from(answers).where(eq(answers.id, s.answerByTarget.id))).length === 0);
+    check('本人の経験談が消えている', (await tx.select().from(experiences).where(eq(experiences.id, s.experience.id))).length === 0);
+    check('本人のお問い合わせが消えている', (await tx.select().from(contacts).where(eq(contacts.userId, s.target.id))).length === 0);
+    check('本人のお問い合わせの対応履歴が消えている', (await tx.select().from(contactStatusHistory).where(eq(contactStatusHistory.contactId, s.contact.id))).length === 0);
+
+    // 巻き込まれていない
+    check('他人の質問は残っている', (await tx.select().from(questions).where(eq(questions.id, s.otherQuestion.id))).length === 1);
+    check('他人の回答は残っている', (await tx.select().from(answers).where(eq(answers.id, s.otherAnswer.id))).length === 1);
+    check('他人の質問のタグは残っている', (await tx.select().from(questionTags).where(eq(questionTags.questionId, s.otherQuestion.id))).length === 1);
+    check('タグ自体は残っている', (await tx.select().from(tags).where(eq(tags.id, s.tag.id))).length === 1);
+    check('他人のお問い合わせは残っている', (await tx.select().from(contacts).where(eq(contacts.id, s.otherContact.id))).length === 1);
+
+    // 残すもの
+    const [u] = await tx.select().from(users).where(eq(users.id, s.target.id));
+    check('墓標のユーザー行は残っている', u.deletedAt !== null && u.name === null);
+    check('アクセス履歴は残っている', (await tx.select().from(activityLogs).where(eq(activityLogs.teamId, s.team.id))).length === 1);
+    check('チームは残っている', (await tx.select().from(teams).where(eq(teams.id, s.team.id))).length === 1);
+    const [d] = await tx.select().from(accountDeletions).where(eq(accountDeletions.id, deletionId));
+    check('purged_at が入っている', d.purgedAt !== null, d);
+
+    check('2回目は何もしない（null）', (await purgeAccountDeletionInTransaction(tx, deletionId, new Date())) === null);
+    const due2 = await tx.select({ id: accountDeletions.id }).from(accountDeletions).where(dueDeletionCondition(new Date()));
+    check('実行済みは、対象として選ばれない', !due2.some((x) => x.id === deletionId));
+  });
+
+  await inRollback('パージ（コンテンツを残す削除）', async (tx) => {
+    const owner = await createUser(tx, 'owner', 'owner');
+    const s = await seedTarget(tx, owner.id);
+    const deletionId = await deleteThenMakeDue(tx, {
+      userId: s.target.id,
+      mode: 'keep_content',
+      actor: { type: 'admin', id: owner.id },
+      reason: 'verify',
+    });
+
+    const counts = await purgeAccountDeletionInTransaction(tx, deletionId, new Date());
+    check('パージが実行される', counts !== null);
+    if (!counts) return;
+
+    check('コンテンツは消えない', counts.questions === 0 && counts.answers === 0 && counts.experiences === 0 && counts.questionTags === 0 && counts.experienceTags === 0, counts);
+    check('お問い合わせは消える', counts.contacts === 1 && counts.contactStatusHistory === 1, counts);
+
+    check('質問が残っている', (await tx.select().from(questions).where(eq(questions.id, s.question.id))).length === 1);
+    check('本人の質問への他人の回答が残っている', (await tx.select().from(answers).where(eq(answers.id, s.answerByOther.id))).length === 1);
+    check('本人の回答が残っている', (await tx.select().from(answers).where(eq(answers.id, s.answerByTarget.id))).length === 1);
+    check('経験談が残っている', (await tx.select().from(experiences).where(eq(experiences.id, s.experience.id))).length === 1);
+    check('タグが残っている', (await tx.select().from(questionTags).where(eq(questionTags.questionId, s.question.id))).length === 1);
+    check('お問い合わせが消えている', (await tx.select().from(contacts).where(eq(contacts.userId, s.target.id))).length === 0);
+    const [d] = await tx.select().from(accountDeletions).where(eq(accountDeletions.id, deletionId));
+    check('purged_at が入っている', d.purgedAt !== null);
+  });
+
+  await inRollback('パージ（期限前は何もしない）', async (tx) => {
+    const owner = await createUser(tx, 'owner', 'owner');
+    const s = await seedTarget(tx, owner.id);
+    const r = await deleteUserInTransaction(tx, { userId: s.target.id, mode: 'full', actor: { type: 'self' } });
+    if (!r.ok) throw new Error('deleteUser failed');
+
+    const now = new Date();
+    check('期限前は null', (await purgeAccountDeletionInTransaction(tx, r.deletionId, now)) === null);
+    const due = await tx.select({ id: accountDeletions.id }).from(accountDeletions).where(dueDeletionCondition(now));
+    check('期限前は、対象として選ばれない', !due.some((x) => x.id === r.deletionId));
+    check('期限前は、質問が消えていない', (await tx.select().from(questions).where(eq(questions.id, s.question.id))).length === 1);
+    check('期限前は、purged_at が入らない', (await tx.select().from(accountDeletions).where(eq(accountDeletions.id, r.deletionId)))[0].purgedAt === null);
+
+    // 期限ちょうど（境界）なら実行される
+    const atDeadline = await purgeAccountDeletionInTransaction(tx, r.deletionId, r.purgeAfter);
+    check('期限ちょうどなら実行される', atDeadline !== null);
+    check('期限ちょうどのパージで、質問が消える', (await tx.select().from(questions).where(eq(questions.id, s.question.id))).length === 0);
+  });
+
+  // ---------------------------------------------------------------
   // ロールバックの確認: テストデータが残っていない
   const leftUsers = await db.select().from(users).where(like(users.email, `verify-${RUN}-%`));
   const leftTeams = await db.select().from(teams).where(like(teams.name, `verify-${RUN}-%`));
+  const leftTags = await db.select().from(tags).where(like(tags.slug, `verify-${RUN}-%`));
+  check('ロールバック: テスト用タグが残っていない', leftTags.length === 0, leftTags.length);
   const leftDeletions = await db
     .select()
     .from(accountDeletions)
