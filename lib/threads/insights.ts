@@ -16,7 +16,9 @@ import { ThreadsNoDataError } from './errors';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const INSIGHT_CONCURRENCY = 4;
-const TOP_POST_COUNT = 3;
+// 分析担当に渡す、今週の投稿の一覧の最大件数（新しい順）
+const MAX_LISTED_POSTS = 40;
+const SNIPPET_LENGTH = 40;
 
 type PostWithInsights = { post: ThreadsPost; insights: MediaInsights };
 
@@ -53,6 +55,18 @@ const formatNumber = (value: number) => value.toLocaleString('ja-JP');
 
 const formatDate = (date: Date) =>
   date.toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric', timeZone: 'Asia/Tokyo' });
+
+// 投稿日時（日本時間）。時間帯・曜日ごとの傾向を見られるようにする
+const formatPostedAt = (date: Date) =>
+  date.toLocaleString('ja-JP', {
+    month: 'numeric',
+    day: 'numeric',
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: 'Asia/Tokyo',
+  });
 
 function reactionCount(insights: MediaInsights): number {
   return insights.likes + insights.replies + insights.reposts + insights.quotes;
@@ -129,15 +143,20 @@ export async function buildWeeklyKpiInput(
     metrics.push({ name: 'フォロワー数（現在）', value: formatNumber(followers) });
   }
 
-  const topPosts = [...thisWeek]
-    .sort((a, b) => reactionCount(b.insights) - reactionCount(a.insights))
-    .slice(0, TOP_POST_COUNT)
-    .filter((item) => reactionCount(item.insights) > 0)
-    .map((item) => {
-      const snippet = item.post.text.replace(/\s+/g, ' ').slice(0, 50);
-      const { views, likes, replies, reposts } = item.insights;
+  // 反応（いいね・返信・リポスト・引用）が1件以上あった投稿の数。
+  // 一覧から数えさせず、こちらで数えて渡す（一覧の一部だけを見て、誤った件数を推測させないため）
+  const reactedCount = (list: PostWithInsights[]) =>
+    list.filter((item) => reactionCount(item.insights) > 0).length;
 
-      return `- 「${snippet}${item.post.text.length > 50 ? '…' : ''}」 閲覧${formatNumber(views)} / いいね${likes} / 返信${replies} / リポスト${reposts}`;
+  const listedPosts = [...thisWeek]
+    .sort((a, b) => b.post.timestamp.getTime() - a.post.timestamp.getTime())
+    .slice(0, MAX_LISTED_POSTS)
+    .map((item) => {
+      const text = item.post.text.replace(/\s+/g, ' ');
+      const snippet = `${text.slice(0, SNIPPET_LENGTH)}${text.length > SNIPPET_LENGTH ? '…' : ''}`;
+      const { views, likes, replies, reposts, quotes } = item.insights;
+
+      return `- ${formatPostedAt(item.post.timestamp)} 「${snippet}」（${text.length}字） 閲覧${formatNumber(views)} / いいね${likes} / 返信${replies} / リポスト${reposts} / 引用${quotes}`;
     });
 
   const context = [
@@ -147,7 +166,11 @@ export async function buildWeeklyKpiInput(
     skippedCount > 0
       ? `数字（インサイト）を取得できなかった投稿が${skippedCount}件あり、集計から除外している。`
       : '',
-    topPosts.length > 0 ? `今週の投稿のうち、反応（いいね・返信・リポスト・引用）が多かったもの:\n${topPosts.join('\n')}` : '',
+    `反応（いいね・返信・リポスト・引用のいずれか）が1件以上あった投稿: 今週 ${reactedCount(thisWeek)}件（全${thisWeek.length}件中）、前回 ${reactedCount(previousWeek)}件（全${previousWeek.length}件中）。`,
+    listedPosts.length > 0
+      ? `今週の投稿の一覧（投稿日時は日本時間、新しい順。全${thisWeek.length}件${thisWeek.length > MAX_LISTED_POSTS ? `のうち新しい${MAX_LISTED_POSTS}件` : 'すべて'}）:\n${listedPosts.join('\n')}`
+      : '',
+    '前回の投稿の一覧は渡していない（件数と合計値のみ）。',
   ]
     .filter(Boolean)
     .join('\n');
