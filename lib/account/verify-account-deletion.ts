@@ -30,6 +30,7 @@ import {
   dueDeletionCondition,
   purgeAccountDeletionInTransaction,
 } from '@/lib/retention/account-deletions';
+import { blockedEmailCondition } from './blocklist';
 import { hashEmailForBlocklist } from './email-hash';
 import {
   PURGE_DAYS,
@@ -405,6 +406,34 @@ async function main() {
     check('メンバーだけ外れる', members.length === 1 && members[0].userId === teamOwner.id, members);
     const [t] = await tx.select().from(teams).where(eq(teams.id, team.id));
     check('チームの名前は変わらない', t.name === `verify-${RUN}-shared's Team`, t.name);
+  });
+
+  // ---------------------------------------------------------------
+  await inRollback('再登録拒否の照合', async (tx) => {
+    const owner = await createUser(tx, 'owner', 'owner');
+    const banned = await createUser(tx, 'banned');
+    const bannedKeep = await createUser(tx, 'bannedkeep');
+    const left = await createUser(tx, 'left');
+    const notBanned = await createUser(tx, 'notbanned');
+
+    const isBlocked = async (email: string) =>
+      (await tx.select({ id: accountDeletions.id }).from(accountDeletions).where(blockedEmailCondition(email))).length > 0;
+
+    check('削除前は、拒否されていない', !(await isBlocked(banned.email)));
+
+    const admin = { type: 'admin', id: owner.id } as const;
+    const r1 = await deleteUserInTransaction(tx, { userId: banned.id, mode: 'full', actor: admin, reason: 'x', blockReRegistration: true });
+    const r2 = await deleteUserInTransaction(tx, { userId: bannedKeep.id, mode: 'keep_content', actor: admin, reason: 'x', blockReRegistration: true });
+    const r3 = await deleteUserInTransaction(tx, { userId: left.id, mode: 'full', actor: { type: 'self' } });
+    const r4 = await deleteUserInTransaction(tx, { userId: notBanned.id, mode: 'full', actor: admin, reason: 'x' });
+    check('4人とも削除できる', r1.ok && r2.ok && r3.ok && r4.ok, [r1, r2, r3, r4]);
+
+    check('拒否した人のメールは、拒否される', await isBlocked(banned.email));
+    check('大文字・前後の空白が違っても、拒否される', await isBlocked(`  ${banned.email.toUpperCase()}  `));
+    check('コンテンツを残す削除でも、拒否できる', await isBlocked(bannedKeep.email));
+    check('本人退会したメールは、拒否されない', !(await isBlocked(left.email)));
+    check('拒否を選ばなかった運営削除のメールは、拒否されない', !(await isBlocked(notBanned.email)));
+    check('無関係のメールは、拒否されない', !(await isBlocked(`nobody-${RUN}@example.invalid`)));
   });
 
   // ---------------------------------------------------------------

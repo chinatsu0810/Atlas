@@ -31,6 +31,7 @@ import { cookies } from 'next/headers';
 import { createCheckoutSession } from '@/lib/payments/stripe';
 import { getUser, getUserWithTeam } from '@/lib/db/queries';
 import { deleteUser } from '@/lib/account/delete-user';
+import { isReRegistrationBlocked } from '@/lib/account/blocklist';
 
 // ログインフォームに渡す redirect は内部の相対パスのみ許可する
 // （外部URLへのオープンリダイレクトを防ぐため）
@@ -169,6 +170,17 @@ if (existingUser.length > 0) {
   return {
     error:
       'このメールアドレスはすでに登録されています。ログインしてください。',
+    name,
+    email,
+    password,
+  };
+}
+
+// 運営が「再登録を拒否」して削除したメールアドレスは、登録できない
+if (await isReRegistrationBlocked(email)) {
+  return {
+    error:
+      'このメールアドレスでは登録できません。心当たりがない場合は、お問い合わせください。',
     name,
     email,
     password,
