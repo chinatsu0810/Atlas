@@ -64,6 +64,13 @@ ${TONE_DESCRIPTIONS}
 - 投稿は最大${MAX_POST_LENGTH}文字（推奨${RECOMMENDED_POST_LENGTH_MIN}〜${RECOMMENDED_POST_LENGTH_MAX}文字）。
   段落数は少なく、全部を伝える構成にしない。最初の1文でスクロールを止める書き出しの方向性を決める
 
+# 運営のThreads分析（参考情報）がある場合の扱い
+- 入力に「運営のThreads分析」がある場合は、切り口・構成・最初の1文の方向性を考えるときの「参考」にしてよい
+  （例: 体験を尋ねる形の投稿に返信が集まった、という仮説を、問いかけの置き方の参考にする）
+- ただし、これはサンプルの小さい仮説であり、事実ではない。この傾向に合わせすぎない。優先するのは、常に
+  「経験・共感を中心にする」というAtlasの方針と、リサーチ担当が見立てた感情
+- 分析の数字や「〜だったから」という分析上の根拠を、採用理由・投稿方針に書かない（ライターに数字を持ち込まない）
+
 # あなたの仕事
 1. リサーチ結果から考えられる切り口を複数検討する
 2. その中から、経験・共感が中心になり、最も「知りたい・聞きたい・残したい」と思われる切り口を1つ選ぶ（採用理由も示す）
@@ -90,7 +97,7 @@ ${buildResonanceSection(research)}
 経験を語れる論点: ${research.talkingPoints.join(' / ') || 'なし'}
 Atlasを紹介できる接点: ${research.atlasConnectionIdeas.join(' / ') || 'なし'}
 
-上記の条件で、投稿の切り口・構成・方針を決めてください。`;
+${draftInput.analysisNote?.trim() ? `# 運営のThreads分析（参考情報。仮説を含む）\n${draftInput.analysisNote.trim()}\n\n` : ''}上記の条件で、投稿の切り口・構成・方針を決めてください。`;
   },
 
   jsonSchema: POST_PLAN_JSON_SCHEMA,

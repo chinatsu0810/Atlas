@@ -121,8 +121,11 @@ type FocusSection = (typeof FOCUS_SECTION_MAP)[keyof typeof FOCUS_SECTION_MAP];
 
 export function SocialDraftForm({
   initialWorkflows,
+  latestAnalysisAt,
 }: {
   initialWorkflows: SocialWorkflow[];
+  // 保存済みの最新のKPI分析の日時（ISO）。なければ null
+  latestAnalysisAt: string | null;
 }) {
   const searchParams = useSearchParams();
 
@@ -138,6 +141,18 @@ export function SocialDraftForm({
   const [tone, setTone] = useState<SocialDraftTone>(SOCIAL_DRAFT_TONES[0]);
   const [promoteAtlas, setPromoteAtlas] = useState(true);
   const [observations, setObservations] = useState('');
+  // 直近のKPI分析を、テーマ選定・企画の参考にするか（分析があれば、最初はオン）
+  const [useAnalysis, setUseAnalysis] = useState(latestAnalysisAt !== null);
+
+  const latestAnalysisLabel = latestAnalysisAt
+    ? new Date(latestAnalysisAt).toLocaleString('ja-JP', {
+        timeZone: 'Asia/Tokyo',
+        month: 'numeric',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : null;
   const [showManualForm, setShowManualForm] = useState(false);
 
   const [isGenerating, setIsGenerating] = useState(false);
@@ -282,6 +297,9 @@ export function SocialDraftForm({
           (observations.trim()
             ? 'Threadsの観測メモに基づいてテーマを選びます。'
             : 'Threadsの観測メモがないため、AIの見立て（仮説）でテーマを選びます。') +
+          (useAnalysis && latestAnalysisLabel
+            ? `直近のThreads分析（${latestAnalysisLabel}実施）を、テーマ・切り口の参考にします（仮説として扱われます）。`
+            : '') +
           '数分かかることがあります。実行しますか？'
       )
     ) {
@@ -292,7 +310,10 @@ export function SocialDraftForm({
     setErrorMessage('');
 
     try {
-      const result = await createWeeklySocialBatch(observations.trim() || undefined);
+      const result = await createWeeklySocialBatch(
+        observations.trim() || undefined,
+        useAnalysis && latestAnalysisAt !== null
+      );
 
       if (!result.ok) {
         setErrorMessage(result.error);
@@ -546,6 +567,25 @@ export function SocialDraftForm({
             入れない場合は、AIの見立て（仮説）としてテーマを選び、そのことが結果に表示されます。
           </p>
         </div>
+
+        <label className="mt-4 flex items-start gap-2 text-sm text-orange-900">
+          <input
+            type="checkbox"
+            checked={useAnalysis && latestAnalysisAt !== null}
+            onChange={(event) => setUseAnalysis(event.target.checked)}
+            disabled={latestAnalysisAt === null || isBatchGenerating}
+            className="mt-0.5 h-4 w-4 rounded border-orange-300"
+          />
+
+          <span>
+            直近のThreads分析を、テーマ・切り口の参考にする
+            <span className="mt-0.5 block text-xs text-orange-800">
+              {latestAnalysisLabel === null
+                ? 'まだ分析がありません。上の「Threads連携（分析担当）」で「今週の数字を分析する」を実行すると、選べます。'
+                : `${latestAnalysisLabel}に実施した分析を使います。サンプルが小さいため、仮説（参考情報）として扱われ、テーマは分析に偏らないよう、多様に選ばれます。`}
+            </span>
+          </span>
+        </label>
       </div>
 
       {/* 手動で1件作成（折りたたみ） */}

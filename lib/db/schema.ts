@@ -861,3 +861,51 @@ export const threadsConnectionsRelations = relations(
 
 export type ThreadsConnectionRow = typeof threadsConnections.$inferSelect;
 export type NewThreadsConnectionRow = typeof threadsConnections.$inferInsert;
+
+
+// ============================================================
+// Threads KPI Reports
+// 分析担当のKPIレビューの結果。分析のたびに保存し、次回の分析（前回との比較）と、
+// 週次の投稿作成（テーマ選定の参考情報）で使う。
+// ============================================================
+
+export const threadsKpiReports = pgTable('threads_kpi_reports', {
+  id: serial('id').primaryKey(),
+
+  // 分析を実行した運営ユーザー
+  createdBy: integer('created_by')
+    .notNull()
+    .references(() => users.id),
+
+  // 分析した期間（「今週」＝直近7日間）
+  periodStart: timestamp('period_start').notNull(),
+  periodEnd: timestamp('period_end').notNull(),
+
+  // 指標の表（KpiReviewInput['metrics']）
+  metrics: jsonb('metrics').notNull(),
+
+  // 分析担当に渡した背景情報（テキスト）
+  context: text('context').notNull().default(''),
+
+  // 投稿ごとの数字・フォロワー数など（WeeklySnapshot: lib/threads/reports.ts）。
+  // 次回の分析で「前回の分析からの変化」を出すために使う
+  snapshot: jsonb('snapshot').notNull(),
+
+  // 分析担当の整理（KpiReview: lib/ai/skills/kpi-review.ts）
+  review: jsonb('review').notNull(),
+
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const threadsKpiReportsRelations = relations(
+  threadsKpiReports,
+  ({ one }) => ({
+    createdByUser: one(users, {
+      fields: [threadsKpiReports.createdBy],
+      references: [users.id],
+    }),
+  })
+);
+
+export type ThreadsKpiReportRow = typeof threadsKpiReports.$inferSelect;
+export type NewThreadsKpiReportRow = typeof threadsKpiReports.$inferInsert;

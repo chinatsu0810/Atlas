@@ -42,6 +42,7 @@ export async function runWeeklyBatch<T>(
         tone: candidate.tone,
         promoteAtlas: candidate.promoteAtlas,
         observations: options.observations,
+        analysisNote: options.analysisNote,
         themeNote: `中心の感情: ${candidate.emotion} / なぜ反応されたか: ${candidate.whyItResonated}`,
       })
     )

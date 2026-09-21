@@ -11,6 +11,11 @@ import {
   type ThreadsStatus,
   type WeeklyKpiReview,
 } from '@/lib/threads/actions';
+import type { KpiReportView } from '@/lib/threads/reports';
+
+// サーバーとブラウザで表示がずれないよう（ハイドレーションの不一致を避けるため）、日本時間で固定する
+const formatJst = (iso: string, options: Intl.DateTimeFormatOptions) =>
+  new Date(iso).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo', ...options });
 
 // /api/threads/callback から戻ってきたときの結果
 const NOTICES: Record<string, { text: string; tone: 'ok' | 'error' }> = {
@@ -66,16 +71,21 @@ export function ThreadsPanel({
   initialStatus,
   notice,
   noticeDetail,
+  initialReports,
 }: {
   initialStatus: ThreadsStatus;
   notice: string | null;
   noticeDetail: string | null;
+  // 保存済みの分析（新しい順）
+  initialReports: KpiReportView[];
 }) {
   const [status, setStatus] = useState<ThreadsStatus>(initialStatus);
   const [isRunning, setIsRunning] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [result, setResult] = useState<WeeklyKpiReview | null>(null);
+  const [history, setHistory] = useState<KpiReportView[]>(initialReports);
+  // 表示中の分析。最初は、保存済みの最新の分析（ページを開き直しても、前回の分析が見られる）
+  const [result, setResult] = useState<WeeklyKpiReview | null>(initialReports[0] ?? null);
 
   const noticeInfo = notice ? NOTICES[notice] : undefined;
 
@@ -89,7 +99,13 @@ export function ThreadsPanel({
       const response = await runWeeklyKpiReview();
 
       if (response.ok) {
-        setResult(response.data);
+        const report = response.data;
+
+        setResult(report);
+
+        if (report.id !== null) {
+          setHistory((current) => [report, ...current]);
+        }
       } else {
         setErrorMessage(response.error);
       }
@@ -234,7 +250,7 @@ export function ThreadsPanel({
         <p className="mt-3 text-xs text-muted-foreground">
           連携中{status.username ? `：@${status.username}` : ''}
           {status.expiresAt &&
-            `　トークンの有効期限：${new Date(status.expiresAt).toLocaleDateString('ja-JP')}`}
+            `　トークンの有効期限：${formatJst(status.expiresAt, { year: 'numeric', month: 'numeric', day: 'numeric' })}`}
           {status.expired && '（期限切れ。再連携してください）'}
         </p>
       )}
@@ -245,7 +261,41 @@ export function ThreadsPanel({
 
       {result && (
         <div className="mt-5 space-y-4 border-t pt-4">
-          <p className="text-sm font-medium">{result.period}の分析</p>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-medium">
+              {result.period}の分析
+              <span className="ml-2 text-xs font-normal text-muted-foreground">
+                {formatJst(result.createdAt, {
+                  month: 'numeric',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+                に実施{result.id === null && '（保存されていません）'}
+              </span>
+            </p>
+
+            {history.length > 1 && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-xs text-muted-foreground">過去の分析：</span>
+
+                {history.map((report) => (
+                  <button
+                    key={report.id}
+                    type="button"
+                    onClick={() => setResult(report)}
+                    className={`rounded-full border px-2.5 py-0.5 text-xs transition ${
+                      result.id === report.id
+                        ? 'border-[#1478B8] bg-[#EAF4FA] text-[#1478B8]'
+                        : 'text-muted-foreground hover:bg-muted'
+                    }`}
+                  >
+                    {formatJst(report.createdAt, { month: 'numeric', day: 'numeric' })}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

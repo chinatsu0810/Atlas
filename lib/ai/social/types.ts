@@ -52,6 +52,10 @@ export const generateSocialDraftInputSchema = z.object({
 
   // 週次バッチのテーマ選定時に見立てた、感情・反応された理由のメモ（任意。DBには保存しない）
   themeNote: z.string().trim().max(1000).optional(),
+
+  // 運営のThreadsアカウントの直近の分析（KPIレビュー）の要約。企画（切り口・構成）とテーマ選定の
+  // 「参考」にだけ使う。仮説を含み、事実として扱わない。書き手（ライター）には渡さない（DBには保存しない）。
+  analysisNote: z.string().trim().max(4000).optional(),
 });
 
 export type GenerateSocialDraftInput = z.infer<

@@ -18,6 +18,8 @@ import {
   runWriteAndCheck,
 } from '@/lib/ai/workflows/social-post-pipeline';
 import { runWeeklyBatch } from '@/lib/ai/workflows/social-weekly-batch';
+import { buildAnalysisNote } from '@/lib/threads/analysis-note';
+import { getLatestKpiReport } from '@/lib/threads/reports';
 
 import {
   auditResultSchema,
@@ -207,7 +209,8 @@ export async function createSocialWorkflow(
  * Threadsへの投稿は一切行わない。担当者がボタンを押したときのみ実行される。
  */
 async function createWeeklySocialBatchOrThrow(
-  rawObservations?: string
+  rawObservations?: string,
+  useLatestAnalysis?: boolean
 ): Promise<SocialWorkflow[]> {
   const user = await requireAdmin();
 
@@ -219,6 +222,18 @@ async function createWeeklySocialBatchOrThrow(
     throw new SocialDraftValidationError(
       `観測メモは${SOCIAL_DRAFT_MAX_OBSERVATIONS_LENGTH}文字以内で入力してください`
     );
+  }
+
+  // 直近のKPI分析（運営のThreadsアカウントの数字と、分析担当の整理）を、テーマ選定と企画の
+  // 「参考情報」として渡す。分析は保存されたものを使う（なければ何も渡さない）。
+  let analysisNote: string | undefined;
+
+  if (useLatestAnalysis === true) {
+    const report = await getLatestKpiReport();
+
+    if (report) {
+      analysisNote = buildAnalysisNote(report);
+    }
   }
 
   const tagRows = await db
@@ -258,6 +273,7 @@ async function createWeeklySocialBatchOrThrow(
         typeTags,
         familyTags,
         observations: observations || undefined,
+        analysisNote,
       },
       (input) => runPipelineForInput(input, user.id)
     )
@@ -484,9 +500,10 @@ async function runAction<T>(run: () => Promise<T>): Promise<ActionResult<T>> {
 }
 
 export async function createWeeklySocialBatch(
-  rawObservations?: string
+  rawObservations?: string,
+  useLatestAnalysis?: boolean
 ): Promise<ActionResult<SocialWorkflow[]>> {
-  return runAction(() => createWeeklySocialBatchOrThrow(rawObservations));
+  return runAction(() => createWeeklySocialBatchOrThrow(rawObservations, useLatestAnalysis));
 }
 
 export async function reviseSocialWorkflow(

@@ -53,6 +53,8 @@ export type ThreadTopicPlanningInput = {
   familyTags: string[];
   // 運営が集めたThreadsの観測メモ（任意）
   observations?: string;
+  // 運営のThreadsアカウントの直近の分析の要約（任意。仮説を含む参考情報）
+  analysisNote?: string;
 };
 
 type TopicCandidateList = { candidates: TopicCandidate[] };
@@ -85,6 +87,14 @@ ${ATLAS_PHILOSOPHY}
 今週のThreads投稿として、読者の感情が動いていそうな「テーマ」と「想定読者」の組み合わせを、
 指定された件数だけ提案してください。Atlasが実際に扱っている経験タイプ・家族構成・テーマのタグ一覧を踏まえ、
 特定の切り口に偏らないよう多様性を持たせてください。
+
+# 運営のThreads分析（参考情報）がある場合の扱い
+- 入力に「運営のThreads分析」がある場合は、テーマ・トーン・切り口の多様性を考えるときの「参考」にしてよい
+  （例: 体験を尋ねる形の投稿に返信が集まった、という仮説を、問いかけ重視のトーンを選ぶ参考にする）
+- ただし、これはサンプルの小さい、自アカウントの仮説であり、事実ではない。指定件数のうち、分析に沿ったテーマは
+  多くても半分程度にとどめ、残りは分析と関係なく、多様なテーマを選ぶこと（傾向に偏らせない）
+- 分析の数字は、whyItResonated に書かない。whyItResonated は、Threadsの観測メモ（あれば）とAtlasの読者の感情に基づいて書く
+- 選ぶ基準は、あくまで「感情が動いているテーマ」「人が語りたくなる経験」。分析は、その判断の補助にすぎない
 
 # 良いテーマ（感情が動いている）
 赴任するか迷った / 仕事を辞めた / 子どもへの説明 / 帯同の孤独 / 帰国後のキャリア / 現地で友達ができない /
@@ -137,7 +147,7 @@ ${
     : 'なし'
 }
 
-上記を踏まえて、今週のThreads投稿ラインナップを${options.count}件提案してください。`;
+${options.analysisNote?.trim() ? `# 運営のThreads分析（参考情報。仮説を含む）\n${options.analysisNote.trim()}\n\n` : ''}上記を踏まえて、今週のThreads投稿ラインナップを${options.count}件提案してください。`;
   },
 
   jsonSchema: TOPIC_CANDIDATES_JSON_SCHEMA,

@@ -6,6 +6,7 @@ import { getUser } from '@/lib/db/queries';
 import { isAdmin } from '@/lib/auth/permissions';
 import { getRecentSocialWorkflows } from '@/lib/ai/social/actions';
 import { getThreadsStatus } from '@/lib/threads/actions';
+import { listKpiReports, toKpiReportView } from '@/lib/threads/reports';
 
 import { SocialDraftForm } from './social-draft-form';
 import { ThreadsPanel } from './threads-panel';
@@ -40,10 +41,17 @@ export default async function SocialDraftPage({
     );
   }
 
-  const [initialWorkflows, threadsStatus] = await Promise.all([
+  const [initialWorkflows, threadsStatus, kpiReports] = await Promise.all([
     getRecentSocialWorkflows(30),
     getThreadsStatus(),
+    // 分析の保存（テーブル）の読み込みに失敗しても、ページ全体は表示する
+    listKpiReports(10).catch((error) => {
+      console.error('Failed to load KPI reports:', error);
+      return [];
+    }),
   ]);
+
+  const reportViews = kpiReports.map(toKpiReportView);
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-6 md:px-6 md:py-10">
@@ -81,11 +89,15 @@ export default async function SocialDraftPage({
           initialStatus={threadsStatus}
           notice={threadsNotice ?? null}
           noticeDetail={threadsNoticeDetail ?? null}
+          initialReports={reportViews}
         />
       </div>
 
       <Suspense>
-        <SocialDraftForm initialWorkflows={initialWorkflows} />
+        <SocialDraftForm
+          initialWorkflows={initialWorkflows}
+          latestAnalysisAt={reportViews[0]?.createdAt ?? null}
+        />
       </Suspense>
     </main>
   );

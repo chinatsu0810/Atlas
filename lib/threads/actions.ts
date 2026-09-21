@@ -5,7 +5,6 @@ import type { ActionResult } from '@/lib/action-result';
 import { isAdmin } from '@/lib/auth/permissions';
 
 import { SkillCallError } from '@/lib/ai/core/skill';
-import type { KpiReview, KpiReviewInput } from '@/lib/ai/skills/kpi-review';
 import { runKpiReview } from '@/lib/ai/workflows/kpi-review';
 
 import { ThreadsApiError } from './client';
@@ -13,6 +12,7 @@ import { getThreadsConfig } from './config';
 import { deleteConnection, getAccessToken, getConnectionRow } from './connection';
 import { ThreadsNoDataError, ThreadsNotConnectedError } from './errors';
 import { buildWeeklyKpiInput } from './insights';
+import { getLatestKpiReport, saveKpiReport, toKpiReportView, type KpiReportView } from './reports';
 
 // このファイルの役割は、権限チェックと、Threads連携（lib/threads）・KPIレビューWorkflowの呼び出しだけ。
 // 画面から呼ばれる処理は、エラーを例外ではなく結果として返す
@@ -33,16 +33,16 @@ export type ThreadsStatus = {
   expired: boolean;
 };
 
-export type WeeklyKpiReview = {
-  period: string;
-  metrics: KpiReviewInput['metrics'];
-  context: string;
-  review: KpiReview;
-};
+// 分析の結果。保存できた場合は id が入る（保存に失敗しても、結果自体は表示する）
+export type WeeklyKpiReview = KpiReportView;
+
+async function getOwnerId(): Promise<number | null> {
+  const user = await getUser();
+  return user && (await isAdmin(user.id)) ? user.id : null;
+}
 
 async function isOwner(): Promise<boolean> {
-  const user = await getUser();
-  return !!user && (await isAdmin(user.id));
+  return (await getOwnerId()) !== null;
 }
 
 export async function getThreadsStatus(): Promise<ThreadsStatus> {
@@ -93,7 +93,9 @@ export async function disconnectThreads(): Promise<ActionResult<null>> {
  * 分析担当は改善の材料を整理するだけで、決定はしない。
  */
 export async function runWeeklyKpiReview(): Promise<ActionResult<WeeklyKpiReview>> {
-  if (!(await isOwner())) {
+  const ownerId = await getOwnerId();
+
+  if (ownerId === null) {
     return { ok: false, error: 'この操作は運営のみ実行できます。' };
   }
 
@@ -106,18 +108,50 @@ export async function runWeeklyKpiReview(): Promise<ActionResult<WeeklyKpiReview
 
   try {
     const { token, threadsUserId } = await getAccessToken();
-    const input = await buildWeeklyKpiInput(token, threadsUserId);
+
+    // 前回の分析が保存されていれば、前回からの変化も分析に含める（読み込みに失敗しても、分析は続ける）
+    const previous = await getLatestKpiReport().catch((error) => {
+      console.error('Failed to load the previous KPI report:', error);
+      return null;
+    });
+
+    const { input, snapshot, periodStart, periodEnd } = await buildWeeklyKpiInput(
+      token,
+      threadsUserId,
+      { previous }
+    );
     const review = await runKpiReview(input);
 
-    return {
-      ok: true,
-      data: {
-        period: input.period,
+    const context = input.context ?? '';
+
+    // 保存に失敗しても、（AIの呼び出しが済んだ）分析の結果は捨てずに表示する
+    try {
+      const saved = await saveKpiReport({
+        createdBy: ownerId,
+        periodStart,
+        periodEnd,
         metrics: input.metrics,
-        context: input.context ?? '',
+        context,
+        snapshot,
         review,
-      },
-    };
+      });
+
+      return { ok: true, data: toKpiReportView(saved) };
+    } catch (error) {
+      console.error('Failed to save the KPI report:', error);
+
+      return {
+        ok: true,
+        data: {
+          id: null,
+          createdAt: new Date().toISOString(),
+          period: input.period,
+          metrics: input.metrics,
+          context,
+          review,
+        },
+      };
+    }
   } catch (error) {
     if (error instanceof ThreadsNotConnectedError || error instanceof ThreadsNoDataError) {
       return { ok: false, error: error.message };
