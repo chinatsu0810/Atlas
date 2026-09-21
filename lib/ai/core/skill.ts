@@ -113,6 +113,13 @@ ${skill.buildTaskInstructions(ctx)}`;
       );
     }
 
+    // 残高不足は 400（invalid_request_error）で返ってくる。再試行しても直らないので、専用の文言にする
+    if (error instanceof Anthropic.BadRequestError && /credit balance/i.test(error.message)) {
+      throw new SkillCallError(
+        'AIサービスの利用残高が不足しています。管理者に連絡してください。'
+      );
+    }
+
     if (error instanceof Anthropic.APIError) {
       throw new SkillCallError('AIとの通信に失敗しました。もう一度お試しください。');
     }
