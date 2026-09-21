@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { and, eq, sql, isNull, ne } from 'drizzle-orm';
+import { and, eq, isNull, ne } from 'drizzle-orm';
 import { db } from '@/lib/db/drizzle';
 
 import {
@@ -30,6 +30,7 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { createCheckoutSession } from '@/lib/payments/stripe';
 import { getUser, getUserWithTeam } from '@/lib/db/queries';
+import { deleteUser } from '@/lib/account/delete-user';
 
 // ログインフォームに渡す redirect は内部の相対パスのみ許可する
 // （外部URLへのオープンリダイレクトを防ぐため）
@@ -435,31 +436,20 @@ export const deleteAccount = validatedActionWithUser(
       };
     }
 
-    const userWithTeam = await getUserWithTeam(user.id);
+    // 個人情報の消去、コンテンツの非表示、30日後のパージ予約をまとめて行う。
+    // 仕様は docs/account-deletion.md。削除の記録は account_deletions に残るので、
+    // activity_logs には残さない（残すと、誰の操作か分かる状態が復活するため）
+    const result = await deleteUser({
+      userId: user.id,
+      mode: 'full',
+      actor: { type: 'self' },
+    });
 
-    await logActivity(
-      userWithTeam?.teamId,
-      user.id,
-      ActivityType.DELETE_ACCOUNT
-    );
-
-    await db
-      .update(users)
-      .set({
-        deletedAt: sql`CURRENT_TIMESTAMP`,
-        email: sql`CONCAT(email, '-', id, '-deleted')`,
-      })
-      .where(eq(users.id, user.id));
-
-    if (userWithTeam?.teamId) {
-      await db
-        .delete(teamMembers)
-        .where(
-          and(
-            eq(teamMembers.userId, user.id),
-            eq(teamMembers.teamId, userWithTeam.teamId)
-          )
-        );
+    if (!result.ok) {
+      return {
+        password,
+        error: result.message,
+      };
     }
 
     (await cookies()).delete('session');

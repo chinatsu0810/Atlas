@@ -320,7 +320,16 @@ CREATE INDEX "account_deletions_pending_idx"
 | `account_deletions` のマイグレーション（[0018_account_deletions.sql](../lib/db/migrations/0018_account_deletions.sql)） | **本番DBに適用済み**（2026-09-21。SQLを1トランザクションで直接実行）。テーブルと部分インデックスを確認済みで、行は0件。**`npm run db:migrate` は使わないこと**（下の注意を参照） |
 | `deleteUser` 共通関数（[lib/account/delete-user.ts](../lib/account/delete-user.ts)） | **実装済み。どこからも呼んでいない。** 動作確認は [verify-account-deletion.ts](../lib/account/verify-account-deletion.ts)（後述） |
 | 30日後のパージ（[lib/retention/account-deletions.ts](../lib/retention/account-deletions.ts)、日次ジョブに組み込み済み） | **実装済み。未デプロイ・本番では未実行。** 削除の記録がまだ0件なので、デプロイしても何も消えない |
-| それ以外（`deleteAccount` の差し替え、運営削除の画面、ポリシー） | 未着手 |
+| 本人退会（`deleteAccount` を `deleteUser` に差し替え、削除確認画面・削除完了画面の文言） | **実装済み。** [actions.ts](../app/(login)/actions.ts)、[security/page.tsx](../app/account/security/page.tsx)、[deleted/page.tsx](../app/account/deleted/page.tsx)。`deleteUser` 自体はロールバック付きで検証済み。`deleteAccount` を通した実際の退会（Cookie削除・リダイレクトを含む）は、本番DBに記録が残るため、まだ実行していない |
+| それ以外（運営削除の画面、再登録拒否の照合、ポリシー） | 未着手 |
+
+### 本人退会の画面
+
+- 削除確認画面（`/account/security`）に、「削除確認画面の文言案」の内容を表示する。
+- 確認ダイアログにも、「取り消せない」「投稿は30日後に完全に削除される」を入れている。
+- 削除完了画面（`/account/deleted`）で、投稿を非表示にして30日後に完全に削除することを伝える。
+- `deleteUser` が拒否した場合（運営アカウント、他のメンバーがいるチームのオーナー、課金情報が残るチーム）は、その理由を画面に表示する。
+- 旧実装の「`activity_logs` に `DELETE_ACCOUNT` を記録する」処理はなくなった。`ActivityType.DELETE_ACCOUNT` は、過去のログの表示用に残してある。
 
 ### `deleteUser` の実装メモ
 

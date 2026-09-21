@@ -154,13 +154,39 @@ export default function SecurityPage() {
             <div className="space-y-5">
               <div className="rounded-lg bg-red-50 p-4 text-sm text-red-800">
                 <p className="font-medium">
-                  アカウントを削除すると、ログインできなくなります。
+                  アカウントを削除します。この操作は取り消せません。
                 </p>
 
-                <p className="mt-2">
-                  投稿や回答など、Atlas上で公開されたコンテンツは
-                  アカウント削除後も残ります。
-                </p>
+                <ul className="mt-3 list-disc space-y-2 pl-5 leading-6">
+                  <li>
+                    お名前・メールアドレスなどのアカウント情報は、
+                    削除と同時に消去されます。
+                  </li>
+                  <li>
+                    あなたが投稿した質問・回答・経験談は、削除と同時に
+                    非表示になり、30日後に完全に削除されます。
+                  </li>
+                  <li>
+                    あなたの質問に他の方が回答している場合、
+                    その回答も一緒に見えなくなります。
+                  </li>
+                  <li>
+                    お問い合わせの内容は、30日後に完全に削除されます。
+                  </li>
+                  <li>
+                    削除後30日間は、誤操作や問い合わせに対応するため、
+                    非表示の状態でデータを保持します。この間も、
+                    アカウントや投稿を元に戻すことはできません。
+                  </li>
+                  <li>
+                    システムのバックアップには、削除後もデータが
+                    最大30日間残ることがあります。
+                  </li>
+                  <li>
+                    お問い合わせをメールで受け取った運営のメールボックスには、
+                    最大1年間、内容が残ることがあります。
+                  </li>
+                </ul>
               </div>
 
               <form
@@ -199,7 +225,7 @@ export default function SecurityPage() {
                   disabled={isDeletePending}
                   onClick={(event) => {
                     const confirmed = window.confirm(
-                      'アカウントを削除しますか？\n\nこの操作を実行すると、ログインできなくなります。'
+                      'アカウントを削除しますか？\n\nこの操作は取り消せません。投稿した質問・回答・経験談は、削除と同時に非表示になり、30日後に完全に削除されます。'
                     );
 
                     if (!confirmed) {

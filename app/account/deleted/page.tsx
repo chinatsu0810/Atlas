@@ -13,6 +13,11 @@ export default function AccountDeletedPage() {
         </h1>
 
         <p className="mt-3 text-sm leading-6 text-muted-foreground">
+          アカウント情報を削除しました。投稿した質問・回答・経験談は
+          非表示にし、30日後に完全に削除します。
+        </p>
+
+        <p className="mt-3 text-sm leading-6 text-muted-foreground">
           ご利用ありがとうございました。
         </p>
 
