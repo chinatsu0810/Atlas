@@ -307,8 +307,17 @@ CREATE INDEX "account_deletions_pending_idx"
 |---|---|
 | 保持期間切れのお問い合わせの削除（日次ジョブ、`vercel.json`、`CRON_SECRET`） | **実装済み。未デプロイ・未実行。** dry-run で本番DBの対象件数を確認済み（0件） |
 | 表示側の変更（作者名を「退会したユーザー」に）と `signIn` の `deletedAt` チェック | **実装済み。未コミット。** 現状の問題の2と4を塞ぐ。本番DBに退会済みユーザーがいない（会員3人、退会0人）ため、実データでの表示確認はまだできていない |
-| `account_deletions` のマイグレーション（[0018_account_deletions.sql](../lib/db/migrations/0018_account_deletions.sql)） | **作成済み。DBには未適用。** 新しいテーブルと部分インデックスの追加だけで、既存テーブルには触れない。適用は `npm run db:migrate` |
+| `account_deletions` のマイグレーション（[0018_account_deletions.sql](../lib/db/migrations/0018_account_deletions.sql)） | **本番DBに適用済み**（2026-09-21。SQLを1トランザクションで直接実行）。テーブルと部分インデックスを確認済みで、行は0件。**`npm run db:migrate` は使わないこと**（下の注意を参照） |
 | それ以外（`deleteUser`、パージ、運営削除、ポリシー） | 未着手 |
+
+### 注意: `npm run db:migrate` は使えない
+
+本番DBの `drizzle.__drizzle_migrations` には、0002 までの3件しか記録がない。0003〜0017 は、この表に記録しない方法でスキーマに反映されている（テーブルは存在する）。`drizzle-kit migrate` は「最後に記録された時刻より新しいマイグレーション」を実行するので、今 `db:migrate` を流すと 0003 から再実行しようとして、既存のテーブルにぶつかって失敗する。
+
+0018 も、同じ理由で SQL を直接実行して適用した。次のマイグレーションを作るときは、次のどちらかにする。
+
+- 同じように、生成された SQL を直接実行する。
+- 先に `__drizzle_migrations` に 0018 までの記録を足して、`db:migrate` を使えるようにする（記録は最新の1行でよい。`created_at` は `_journal.json` の `when`）。
 
 ## 実装順序
 
