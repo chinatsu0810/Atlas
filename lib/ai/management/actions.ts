@@ -13,6 +13,7 @@ import { getUser } from '@/lib/db/queries';
 import { isAdmin } from '@/lib/auth/permissions';
 
 import { SkillCallError } from '@/lib/ai/core/skill';
+import { UNEXPECTED_ERROR_MESSAGE, type ActionResult } from '@/lib/action-result';
 import {
   resumeMeeting,
   restoreMeetingState,
@@ -166,7 +167,7 @@ export async function createMeeting(rawInput: unknown): Promise<MeetingWithMessa
 /**
  * ④会長への質問に対する回答を記録し、Workflowを再開する。
  */
-export async function answerMeetingQuestions(
+async function answerMeetingQuestionsOrThrow(
   meetingId: number,
   rawInput: unknown
 ): Promise<MeetingWithMessages> {
@@ -209,7 +210,7 @@ export async function answerMeetingQuestions(
  * ⑨会長の最終判断を記録し、会議を終了する。
  * AIはここでも判断を代行しない。決定内容は会長の自由記述をそのまま記録する。
  */
-export async function closeMeetingWithOwnerDecision(
+async function closeMeetingWithOwnerDecisionOrThrow(
   meetingId: number,
   rawInput: unknown
 ): Promise<MeetingWithMessages> {
@@ -283,4 +284,51 @@ export async function getLatestMeeting(): Promise<Meeting | null> {
     .limit(1);
 
   return row ? toMeeting(row) : null;
+}
+
+// ============================================================
+// 画面のボタンから呼ぶServer Action
+//
+// 本番では、Server Actionが投げた例外のメッセージが隠されてしまうため、
+// 失敗の理由は例外ではなく、結果（ActionResult）として返す。
+// 上の `〇〇OrThrow` が実際の処理で、ここはその呼び出しと、エラーの変換だけを行う。
+// ============================================================
+
+// 画面に出してよい（この機能が意図して投げる）エラーはそのまま、それ以外は詳細を隠してログに残す
+function describeError(error: unknown): string {
+  if (
+    error instanceof MeetingUnauthorizedError ||
+    error instanceof MeetingStateError ||
+    error instanceof MeetingNotFoundError ||
+    error instanceof MeetingValidationError ||
+    error instanceof MeetingGenerationError
+  ) {
+    return error.message;
+  }
+
+  console.error('Unexpected error in meeting server action:', error);
+
+  return UNEXPECTED_ERROR_MESSAGE;
+}
+
+async function runAction<T>(run: () => Promise<T>): Promise<ActionResult<T>> {
+  try {
+    return { ok: true, data: await run() };
+  } catch (error) {
+    return { ok: false, error: describeError(error) };
+  }
+}
+
+export async function answerMeetingQuestions(
+  meetingId: number,
+  rawInput: unknown
+): Promise<ActionResult<MeetingWithMessages>> {
+  return runAction(() => answerMeetingQuestionsOrThrow(meetingId, rawInput));
+}
+
+export async function closeMeetingWithOwnerDecision(
+  meetingId: number,
+  rawInput: unknown
+): Promise<ActionResult<MeetingWithMessages>> {
+  return runAction(() => closeMeetingWithOwnerDecisionOrThrow(meetingId, rawInput));
 }

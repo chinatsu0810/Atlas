@@ -12,6 +12,7 @@ import { getUser } from '@/lib/db/queries';
 import { isAdmin } from '@/lib/auth/permissions';
 
 import { SkillCallError } from '@/lib/ai/core/skill';
+import { UNEXPECTED_ERROR_MESSAGE, type ActionResult } from '@/lib/action-result';
 import {
   runPostPipeline,
   runWriteAndCheck,
@@ -205,7 +206,7 @@ export async function createSocialWorkflow(
  * 検品合格・不合格に関わらず、すべて pending_review か needs_revision で停止し、
  * Threadsへの投稿は一切行わない。担当者がボタンを押したときのみ実行される。
  */
-export async function createWeeklySocialBatch(
+async function createWeeklySocialBatchOrThrow(
   rawObservations?: string
 ): Promise<SocialWorkflow[]> {
   const user = await requireAdmin();
@@ -286,7 +287,7 @@ export async function getRecentSocialWorkflows(
  * needs_revision の投稿案について、検品コメントをライターに戻して
  * 執筆→検品を再実行する。担当者がボタンを押したときのみ実行される。
  */
-export async function reviseSocialWorkflow(
+async function reviseSocialWorkflowOrThrow(
   workflowId: number
 ): Promise<SocialWorkflow> {
   await requireAdmin();
@@ -341,7 +342,7 @@ export async function reviseSocialWorkflow(
  * 人間の担当者による承認。pending_review からのみ approved へ遷移できる。
  * 承認時点でのテキストエリアの内容（編集済みの可能性がある）を確定させる。
  */
-export async function approveSocialWorkflow(
+async function approveSocialWorkflowOrThrow(
   workflowId: number,
   edited: EditedSocialDraft
 ): Promise<SocialWorkflow> {
@@ -382,7 +383,7 @@ export async function approveSocialWorkflow(
 /**
  * 人間の担当者による却下。pending_review からのみ rejected へ遷移できる。
  */
-export async function rejectSocialWorkflow(
+async function rejectSocialWorkflowOrThrow(
   workflowId: number
 ): Promise<SocialWorkflow> {
   await requireAdmin();
@@ -408,7 +409,7 @@ export async function rejectSocialWorkflow(
  * Threadsへ手動投稿した後、担当者が明示的に押したときのみ posted へ遷移する。
  * ここでもThreads APIの呼び出しは一切行わない（記録のみ）。
  */
-export async function markSocialWorkflowPosted(
+async function markSocialWorkflowPostedOrThrow(
   workflowId: number
 ): Promise<SocialWorkflow> {
   await requireAdmin();
@@ -435,7 +436,7 @@ export async function markSocialWorkflowPosted(
  * researching/writing/auditing のまま止まってしまったものなどを片付けるため）。
  * 投稿済み（posted）は記録として残すため削除できない。
  */
-export async function deleteSocialWorkflow(workflowId: number): Promise<void> {
+async function deleteSocialWorkflowOrThrow(workflowId: number): Promise<void> {
   await requireAdmin();
 
   const row = await getWorkflowRowOrThrow(workflowId);
@@ -447,4 +448,77 @@ export async function deleteSocialWorkflow(workflowId: number): Promise<void> {
   }
 
   await db.delete(socialWorkflows).where(eq(socialWorkflows.id, workflowId));
+}
+
+// ============================================================
+// 画面のボタンから呼ぶServer Action
+//
+// 本番では、Server Actionが投げた例外のメッセージが隠されてしまうため、
+// 失敗の理由は例外ではなく、結果（ActionResult）として返す。
+// 上の `〇〇OrThrow` が実際の処理で、ここはその呼び出しと、エラーの変換だけを行う。
+// ============================================================
+
+// 画面に出してよい（この機能が意図して投げる）エラーはそのまま、それ以外は詳細を隠してログに残す
+function describeError(error: unknown): string {
+  if (
+    error instanceof SocialWorkflowUnauthorizedError ||
+    error instanceof SocialWorkflowStateError ||
+    error instanceof SocialWorkflowNotFoundError ||
+    error instanceof SocialDraftValidationError ||
+    error instanceof SocialDraftGenerationError
+  ) {
+    return error.message;
+  }
+
+  console.error('Unexpected error in social server action:', error);
+
+  return UNEXPECTED_ERROR_MESSAGE;
+}
+
+async function runAction<T>(run: () => Promise<T>): Promise<ActionResult<T>> {
+  try {
+    return { ok: true, data: await run() };
+  } catch (error) {
+    return { ok: false, error: describeError(error) };
+  }
+}
+
+export async function createWeeklySocialBatch(
+  rawObservations?: string
+): Promise<ActionResult<SocialWorkflow[]>> {
+  return runAction(() => createWeeklySocialBatchOrThrow(rawObservations));
+}
+
+export async function reviseSocialWorkflow(
+  workflowId: number
+): Promise<ActionResult<SocialWorkflow>> {
+  return runAction(() => reviseSocialWorkflowOrThrow(workflowId));
+}
+
+export async function approveSocialWorkflow(
+  workflowId: number,
+  edited: EditedSocialDraft
+): Promise<ActionResult<SocialWorkflow>> {
+  return runAction(() => approveSocialWorkflowOrThrow(workflowId, edited));
+}
+
+export async function rejectSocialWorkflow(
+  workflowId: number
+): Promise<ActionResult<SocialWorkflow>> {
+  return runAction(() => rejectSocialWorkflowOrThrow(workflowId));
+}
+
+export async function markSocialWorkflowPosted(
+  workflowId: number
+): Promise<ActionResult<SocialWorkflow>> {
+  return runAction(() => markSocialWorkflowPostedOrThrow(workflowId));
+}
+
+export async function deleteSocialWorkflow(
+  workflowId: number
+): Promise<ActionResult<null>> {
+  return runAction(async () => {
+    await deleteSocialWorkflowOrThrow(workflowId);
+    return null;
+  });
 }

@@ -1,6 +1,7 @@
 'use server';
 
 import { getUser } from '@/lib/db/queries';
+import type { ActionResult } from '@/lib/action-result';
 import { isAdmin } from '@/lib/auth/permissions';
 
 import { SkillCallError } from '@/lib/ai/core/skill';
@@ -35,8 +36,6 @@ export type WeeklyKpiReview = {
   context: string;
   review: KpiReview;
 };
-
-export type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string };
 
 async function isOwner(): Promise<boolean> {
   const user = await getUser();

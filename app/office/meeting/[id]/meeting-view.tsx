@@ -250,12 +250,19 @@ export function MeetingView({
     setErrorMessage('');
 
     try {
-      const updated = await answerMeetingQuestions(meeting.id, { answers });
-      setMeeting(updated);
+      const result = await answerMeetingQuestions(meeting.id, { answers });
+
+      if (!result.ok) {
+        setErrorMessage(result.error);
+        return;
+      }
+
+      setMeeting(result.data);
       setAnswerDrafts({});
-    } catch (error) {
+    } catch {
+      // 結果を受け取れなかった場合（通信の失敗や、処理時間の超過など）
       setErrorMessage(
-        error instanceof Error ? error.message : '回答の送信に失敗しました。もう一度お試しください。'
+        '回答の送信が完了しませんでした（通信の失敗や、処理時間の超過の可能性があります）。会議の状態を確認するには、ページを再読み込みしてください。'
       );
     } finally {
       setIsSubmitting(false);
@@ -271,13 +278,20 @@ export function MeetingView({
     setErrorMessage('');
 
     try {
-      const updated = await closeMeetingWithOwnerDecision(meeting.id, {
+      const result = await closeMeetingWithOwnerDecision(meeting.id, {
         decision: decisionDraft,
       });
-      setMeeting(updated);
-    } catch (error) {
+
+      if (!result.ok) {
+        setErrorMessage(result.error);
+        return;
+      }
+
+      setMeeting(result.data);
+    } catch {
+      // 結果を受け取れなかった場合（通信の失敗など）
       setErrorMessage(
-        error instanceof Error ? error.message : '判断の記録に失敗しました。もう一度お試しください。'
+        '判断の記録が完了しませんでした（通信の失敗の可能性があります）。ページを再読み込みして、記録されたか確認してください。'
       );
     } finally {
       setIsSubmitting(false);

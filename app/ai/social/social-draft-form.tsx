@@ -93,12 +93,19 @@ function textToHashtags(text: string): string[] {
     .map((tag) => (tag.startsWith('#') ? tag : `#${tag}`));
 }
 
+// Server Actionの失敗は結果（ActionResult）で受け取る。ここに来るのは、通信の失敗や
+// 処理時間の超過など、結果を受け取れなかった場合のみ。Next.jsが本番で隠した
+// メッセージ（定型文）は、意味がないので出さず、原因の見当を添えた文言にする。
 function extractErrorMessage(error: unknown, fallback: string): string {
-  if (error instanceof Error && error.message) {
+  if (
+    error instanceof Error &&
+    error.message &&
+    !error.message.includes('Server Components render')
+  ) {
     return error.message;
   }
 
-  return fallback;
+  return `${fallback}（通信の失敗や、処理時間の超過の可能性があります）`;
 }
 
 // バーチャルオフィスの社員をクリックしたときに付与される ?focus= と、
@@ -285,7 +292,14 @@ export function SocialDraftForm({
     setErrorMessage('');
 
     try {
-      const created = await createWeeklySocialBatch(observations.trim() || undefined);
+      const result = await createWeeklySocialBatch(observations.trim() || undefined);
+
+      if (!result.ok) {
+        setErrorMessage(result.error);
+        return;
+      }
+
+      const created = result.data;
       setWorkflows((current) => [...created, ...current]);
       setSelectedId(created[0]?.id ?? null);
     } catch (error) {
@@ -307,8 +321,14 @@ export function SocialDraftForm({
     setErrorMessage('');
 
     try {
-      const updated = await reviseSocialWorkflow(selectedWorkflow.id);
-      upsertWorkflow(updated);
+      const result = await reviseSocialWorkflow(selectedWorkflow.id);
+
+      if (!result.ok) {
+        setErrorMessage(result.error);
+        return;
+      }
+
+      upsertWorkflow(result.data);
     } catch (error) {
       setErrorMessage(
         extractErrorMessage(error, '再検品に失敗しました。もう一度お試しください。')
@@ -325,11 +345,17 @@ export function SocialDraftForm({
     setErrorMessage('');
 
     try {
-      const updated = await approveSocialWorkflow(selectedWorkflow.id, {
+      const result = await approveSocialWorkflow(selectedWorkflow.id, {
         draft: draftText,
         hashtags: textToHashtags(hashtagsText),
       });
-      upsertWorkflow(updated);
+
+      if (!result.ok) {
+        setErrorMessage(result.error);
+        return;
+      }
+
+      upsertWorkflow(result.data);
     } catch (error) {
       setErrorMessage(
         extractErrorMessage(error, '承認に失敗しました。もう一度お試しください。')
@@ -348,8 +374,14 @@ export function SocialDraftForm({
     setErrorMessage('');
 
     try {
-      const updated = await rejectSocialWorkflow(selectedWorkflow.id);
-      upsertWorkflow(updated);
+      const result = await rejectSocialWorkflow(selectedWorkflow.id);
+
+      if (!result.ok) {
+        setErrorMessage(result.error);
+        return;
+      }
+
+      upsertWorkflow(result.data);
     } catch (error) {
       setErrorMessage(
         extractErrorMessage(error, '却下に失敗しました。もう一度お試しください。')
@@ -366,8 +398,14 @@ export function SocialDraftForm({
     setErrorMessage('');
 
     try {
-      const updated = await markSocialWorkflowPosted(selectedWorkflow.id);
-      upsertWorkflow(updated);
+      const result = await markSocialWorkflowPosted(selectedWorkflow.id);
+
+      if (!result.ok) {
+        setErrorMessage(result.error);
+        return;
+      }
+
+      upsertWorkflow(result.data);
     } catch (error) {
       setErrorMessage(
         extractErrorMessage(
@@ -395,7 +433,13 @@ export function SocialDraftForm({
     setErrorMessage('');
 
     try {
-      await deleteSocialWorkflow(selectedWorkflow.id);
+      const result = await deleteSocialWorkflow(selectedWorkflow.id);
+
+      if (!result.ok) {
+        setErrorMessage(result.error);
+        return;
+      }
+
       setWorkflows((current) =>
         current.filter((item) => item.id !== selectedWorkflow.id)
       );
