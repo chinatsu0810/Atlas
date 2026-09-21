@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
+import { BulletList, LegalSection as Section } from '@/components/legal-section';
+
 // プライバシーポリシー。内容は、実際のデータの扱いに合わせている。
 // 変更するときは、docs/account-deletion.md の「保持期間のまとめ」と食い違わないようにする。
 // 公開前・変更時のチェックリストも、同じ文書の「プライバシーポリシーの公開前チェック」にある。
@@ -13,32 +15,6 @@ export const metadata: Metadata = {
   description:
     'Atlasがお預かりする情報の取り扱い、アカウント削除時の扱い、外部サービスへの情報の送信についてご説明します。',
 };
-
-function Section({
-  number,
-  title,
-  children,
-}: {
-  number: number;
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="border-t pt-8">
-      <h2 className="text-lg font-bold text-gray-900">
-        {number}. {title}
-      </h2>
-
-      <div className="mt-4 space-y-4 text-sm leading-7 text-gray-700">
-        {children}
-      </div>
-    </section>
-  );
-}
-
-function BulletList({ children }: { children: React.ReactNode }) {
-  return <ul className="list-disc space-y-2 pl-5">{children}</ul>;
-}
 
 export default function PrivacyPage() {
   return (
@@ -120,7 +96,8 @@ export default function PrivacyPage() {
 
           <p>
             投稿の内容には、ご自身や他の方を特定できる情報（本名、勤務先、住所、連絡先など）を書かないようご注意ください。
-            投稿後に内容を削除したい場合は、マイページの「自分の質問」「自分の回答」「自分の経験」から行えます。
+            投稿した内容の削除をご希望の場合は、お問い合わせフォームからご連絡ください。運営者が確認のうえ、削除します。
+            アカウントを削除した場合は、「7. アカウントの削除と、情報の保存期間」のとおり、投稿も削除されます。
           </p>
         </Section>
 
@@ -306,10 +283,10 @@ export default function PrivacyPage() {
 
           <BulletList>
             <li>
-              ニックネームとメールアドレスの変更、投稿の削除、アカウントの削除は、マイページからご自身で行えます。
+              ニックネームとメールアドレスの変更、アカウントの削除は、マイページからご自身で行えます。
             </li>
             <li>
-              上記以外のご請求は、お問い合わせフォームから、種別を「アカウントについて」としてご連絡ください。
+              投稿の削除、および上記以外のご請求は、お問い合わせフォームからご連絡ください（アカウントに関するご請求は、種別を「アカウントについて」としてください）。
               ご本人であることを確認したうえで、遅滞なく対応します。
             </li>
           </BulletList>

@@ -306,8 +306,15 @@ export default function AboutPage() {
 
           <div className="mt-5 rounded-xl bg-gray-50 p-5">
             <p className="text-sm leading-6 text-gray-600">
-              Atlasをご利用いただく際の利用規約を掲載します。
+              Atlasをご利用いただく際の利用規約を掲載しています。
             </p>
+
+            <Link
+              href="/terms"
+              className="mt-4 inline-flex items-center text-sm font-medium text-gray-900 underline underline-offset-4 hover:text-gray-700"
+            >
+              利用規約を読む
+            </Link>
           </div>
         </section>
 
