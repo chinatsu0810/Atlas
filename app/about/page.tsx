@@ -319,8 +319,15 @@ export default function AboutPage() {
 
           <div className="mt-5 rounded-xl bg-gray-50 p-5">
             <p className="text-sm leading-6 text-gray-600">
-              Atlasにおける個人情報等の取り扱いについて掲載します。
+              Atlasにおける個人情報等の取り扱いについて掲載しています。
             </p>
+
+            <Link
+              href="/privacy"
+              className="mt-4 inline-flex items-center text-sm font-medium text-gray-900 underline underline-offset-4 hover:text-gray-700"
+            >
+              プライバシーポリシーを読む
+            </Link>
           </div>
         </section>
       </div>
