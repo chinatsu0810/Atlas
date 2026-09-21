@@ -23,6 +23,9 @@ export type ThreadsStatus = {
   // Metaのアプリ設定に登録すべきリダイレクトURI（未設定なら null）と、それがHTTPSか
   redirectUri: string | null;
   redirectUriIsSecure: boolean;
+  // 認可に使う Threads App ID（公開情報。Metaの画面の値と照合できるよう、運営にだけ表示する）
+  appId: string | null;
+  appIdLooksValid: boolean;
   connected: boolean;
   username: string | null;
   // トークンの有効期限（ISO文字列）
@@ -49,6 +52,8 @@ export async function getThreadsStatus(): Promise<ThreadsStatus> {
     configured: config !== null,
     redirectUri: config?.redirectUri ?? null,
     redirectUriIsSecure: config?.redirectUriIsSecure ?? false,
+    appId: config?.appId ?? null,
+    appIdLooksValid: config?.appIdLooksValid ?? false,
     connected: false,
     username: null,
     expiresAt: null,
@@ -57,7 +62,7 @@ export async function getThreadsStatus(): Promise<ThreadsStatus> {
 
   // 運営以外には、設定内容（リダイレクトURI）を返さない
   if (!(await isOwner())) {
-    return { ...base, redirectUri: null };
+    return { ...base, redirectUri: null, appId: null };
   }
 
   const row = await getConnectionRow();

@@ -26,8 +26,12 @@ https://www.atlas-community.jp/api/threads/callback
 
 1. [Meta for Developers](https://developers.facebook.com/) でアプリを作成し、**Threads use case** を追加する
 2. 権限は `threads_basic` と `threads_manage_insights` を選ぶ
-3. アプリの設定で「有効なOAuthリダイレクトURI」に、上のURLを登録する
-4. 「Add or Remove Threads Test Users」で、運用するThreadsアカウントを **Threads Tester** にし、Threadsアプリ側で招待を承認する
+3. **リダイレクトURLを登録する**（詰まりやすい。下の「Metaの設定画面の注意点」を必ず読むこと）
+   - 場所: ユースケース →「Threads APIにアクセス」の「カスタマイズ」→ 右メニューの「設定」
+   - 「Redirect Callback URLs」に、上のURLを入れ、**入力欄の下に出る候補（ドロップダウン）をクリックして確定**してから保存する
+   - 「Uninstall Callback URL」「Delete Callback URL」にも、**同じURLを入れる**（空だと保存できないことがある）
+4. Threadsアカウントを **Threads Tester** にする（「App roles → Roles → Add People」）。そのうえで、**Threadsアプリ側で招待を承認する**
+   （Threadsの「設定 → アカウント → ウェブサイトの許可（Website permissions）→ 招待（Invites）」）
 5. **Vercelの環境変数**に、次を設定して再デプロイする
    - `THREADS_APP_ID` / `THREADS_APP_SECRET`: Metaダッシュボードの「App settings → Basic」にある **「Threads App ID」「Threads app secret」**。
      ページ上部の「App ID」「App secret」とは**別の値**なので、取り違えないこと（取り違えると、認可時に
@@ -35,6 +39,39 @@ https://www.atlas-community.jp/api/threads/callback
    - `THREADS_REDIRECT_URI` = 上のURL（`BASE_URL` とは独立して指定できる。`www` の有無も含めて、Metaに登録した値と完全に一致させる）
    - `ANTHROPIC_API_KEY` / `AUTH_SECRET` / `POSTGRES_URL`（本番で未設定の場合）
 6. **本番サイトに運営でログインし**、`https://www.atlas-community.jp/ai/social` の「Threadsと連携する」を押して認可する
+
+### Metaの設定画面の注意点
+
+実際の設定で詰まった点。
+
+- **リダイレクトURLは、入力しただけでは登録されない。** 入力欄の下に出る候補（ドロップダウン）を**クリックして確定**する。
+  確定しないまま保存すると、「Redirect URIs: Please enter an OAuth redirect URI.」と出る、または、空のまま保存される
+  （設定画面に何も表示されないのは、この状態）。ドロップダウンが出ないときは、最後の1文字を消して入力し直す、
+  「↓」キーとEnterで確定する、別のブラウザ（拡張機能オフ）で開く、などを試す。
+- **「Uninstall Callback URL」「Delete Callback URL」も、埋めないと保存できないことがある。** 使わなくても必須。
+  現在は、リダイレクトURLと同じ値を入れて保存を通してある（Metaが実際に呼び出しても、Atlasは応答できない。下の「未対応」を参照）。
+- **Threads Testerは、追加しただけでは足りない。** Threadsアプリ側で、招待を承認する。
+- **「App ID」と「Threads App ID」は別の値。** 認可に使うのは、「App settings → Basic」の「Threads App ID」「Threads app secret」。
+
+### 認可のときに出るエラーの意味
+
+| エラー | 意味 | 確認すること |
+|---|---|---|
+| `error_code: 1349168`「URLはブロックされています: リダイレクトURIが…ホワイトリストに追加されていない」 | 送ったリダイレクトURLと、Metaに登録されたURLが一致しない（または、登録されていない） | 設定画面に、URLが**保存されて表示されている**か（ドロップダウンの確定）。`THREADS_REDIRECT_URI` の値（`www`・`https`・末尾の `/`）。連携パネルに表示されるURLと、Metaの登録が完全一致か |
+| `error_code: 1`「An unknown error has occurred.」 | Metaが理由を隠している。スコープの区切りが空白（正しくはカンマ）でも出る。設定の不備（リダイレクトURL未登録、テスター未承認など）でも出た | Metaの認可画面を、Atlasを経由せず直接開いて切り分ける（下の「切り分けテスト」） |
+| `Invalid client_id`（トークン交換時） | `THREADS_APP_ID` が、有効なThreadsアプリのIDでない | 「Threads App ID」を使っているか。空白・引用符が混ざっていないか |
+
+### 切り分けテスト（Atlasを経由せず、Metaの設定だけを確認する）
+
+`<Threads App ID>` を置き換えて、ブラウザで開く。同意画面が出れば、Meta側の設定は問題ない。
+
+```text
+https://threads.com/oauth/authorize?client_id=<Threads App ID>&redirect_uri=https%3A%2F%2Fwww.atlas-community.jp%2Fapi%2Fthreads%2Fcallback&scope=threads_basic&response_type=code
+```
+
+同意画面で「許可」を押すと、Atlasに戻り「連携の確認に失敗しました」と出る。このURLでは、Atlas側の確認情報がないためで、想定どおり。
+また、Atlasの認可URLの `client_id` が有効なThreadsアプリのIDかは、Metaのトークン交換エンドポイントに、シークレットなしの
+偽のコードを送り、返るエラーが「Invalid client_id」か、それ以外（例: 「Invalid verification code」）かで確認できる。
 
 ### 連携は、コールバックURLと同じサイトから始める
 
@@ -82,8 +119,11 @@ HTTPSのトンネル（ngrokなど）を使い、そのURLの `/api/threads/call
 
 ## 未対応・確認が必要なこと
 
-- MetaのThreads設定に、リダイレクトURI以外にアンインストール／削除のコールバックURLの入力欄がある場合、
-  この実装にはそのエンドポイントがない（公式ドキュメントで必須かどうか確認できていない。必須と表示されたら追加する）
-- 実際のThreadsアカウントでの動作は未確認（Metaアプリの作成が必要）。Threads APIの応答は、公式ドキュメントに基づく模擬で検証している。
+- **認証解除・削除のコールバックの受け口がない。** 「Uninstall Callback URL」「Delete Callback URL」には、保存を通すため、
+  リダイレクトURL（`/api/threads/callback`）と同じ値を入れてある。ユーザーがThreads側でアプリの連携を解除する、または
+  データ削除を求めると、MetaがそのURLにPOSTするが、Atlasは応答できず（405）、保存済みのトークンも削除されない
+  （手動で「連携を解除」すれば削除できる）。専用の受け口（署名付きリクエストの検証、トークンの削除、削除リクエストへの応答）の実装が望ましい。
+- 連携（認可）は、実際のThreadsアカウントで成功したことを確認した（トークンは暗号化してDBに保存され、有効期限は約60日）。
+  一方、「今週の数字を分析する」（インサイトの取得と分析）は、Threads APIの応答を、公式ドキュメントに基づく模擬で検証したのみ。実際のアカウントでの結果は、運用しながら確認する。
 - 分析結果は保存していない（画面に表示するだけ）。蓄積（Knowledge）は未実装。
 - Metaの開発者ポリシー上、取得した数字の保存・AIでの処理にどんな条件があるか、運用前に確認すること。

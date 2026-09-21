@@ -28,6 +28,10 @@ const NOTICES: Record<string, { text: string; tone: 'ok' | 'error' }> = {
     text: 'Threads連携が設定されていません（THREADS_APP_ID / THREADS_APP_SECRET）。',
     tone: 'error',
   },
+  invalid_app_id: {
+    text: 'THREADS_APP_ID が数字だけの形式ではありません。Vercelの環境変数に、空白・引用符・別の文字列が混ざっていないか確認してください。',
+    tone: 'error',
+  },
   insecure_redirect: {
     text: 'MetaはHTTPSのコールバックURLしか受け付けません。本番サイト（HTTPS）から連携してください。',
     tone: 'error',
@@ -180,6 +184,18 @@ export function ThreadsPanel({
           現在のコールバックURL（{status.redirectUri}）はHTTPSではないため、Metaに登録できず、
           連携を始められません。本番サイトで、環境変数 THREADS_REDIRECT_URI に
           https://（本番のドメイン）/api/threads/callback を設定し、本番サイトから連携してください。
+        </p>
+      )}
+
+      {status.configured && status.appId && !status.connected && (
+        <p
+          className={`mt-3 text-xs ${status.appIdLooksValid ? 'text-muted-foreground' : 'text-red-600'}`}
+        >
+          使用中の Threads App ID：
+          <code className="ml-1 rounded bg-gray-100 px-1.5 py-0.5 text-gray-800">{status.appId}</code>
+          {status.appIdLooksValid
+            ? '（Metaの「App settings → Basic」の「Threads App ID」と一致しているか確認してください。ページ上部の「App ID」とは別の値です）'
+            : '（数字だけの形式ではありません。環境変数を確認してください）'}
         </p>
       )}
 

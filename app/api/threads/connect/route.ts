@@ -27,6 +27,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL('/ai/social?threads=not_configured', request.url));
   }
 
+  // App ID が数字だけの形式でなければ、Metaに送っても「無効なclient_id」になる
+  if (!config.appIdLooksValid) {
+    return NextResponse.redirect(new URL('/ai/social?threads=invalid_app_id', request.url));
+  }
+
   // MetaはHTTPSのリダイレクトURIしか受け付けない。認可画面に進む前に、分かりやすく止める
   if (!config.redirectUriIsSecure) {
     return NextResponse.redirect(new URL('/ai/social?threads=insecure_redirect', request.url));

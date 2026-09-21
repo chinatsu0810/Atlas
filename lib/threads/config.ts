@@ -20,16 +20,23 @@ export const THREADS_OAUTH_STATE_COOKIE = 'threads_oauth_state';
 
 export type ThreadsConfig = {
   appId: string;
+  // Metaのアプリ ID は数字だけ。空白・引用符・別の文字列が混ざっていないか
+  appIdLooksValid: boolean;
   appSecret: string;
   redirectUri: string;
   // MetaはHTTPSのリダイレクトURIしか受け付けない（localhostも不可）
   redirectUriIsSecure: boolean;
 };
 
+// 環境変数の貼り付け時に混ざりやすい、前後の空白・改行・引用符を取り除く
+function cleanEnv(value: string | undefined): string | undefined {
+  return value?.trim().replace(/^["']+|["']+$/g, '').trim() || undefined;
+}
+
 // 未設定の場合は null を返す（連携機能は「未設定」と表示するだけで、他の機能には影響しない）
 export function getThreadsConfig(): ThreadsConfig | null {
-  const appId = process.env.THREADS_APP_ID;
-  const appSecret = process.env.THREADS_APP_SECRET;
+  const appId = cleanEnv(process.env.THREADS_APP_ID);
+  const appSecret = cleanEnv(process.env.THREADS_APP_SECRET);
 
   if (!appId || !appSecret) return null;
 
@@ -39,11 +46,12 @@ export function getThreadsConfig(): ThreadsConfig | null {
   // 本番では、THREADS_REDIRECT_URI に本番のURL（https://…/api/threads/callback）を明示するのが確実
   // （BASE_URL は決済など他の機能でも使うため、それとは独立して指定できるようにしている）
   const redirectUri =
-    process.env.THREADS_REDIRECT_URI?.trim() ||
+    cleanEnv(process.env.THREADS_REDIRECT_URI) ||
     `${baseUrl.replace(/\/$/, '')}/api/threads/callback`;
 
   return {
     appId,
+    appIdLooksValid: /^[0-9]{8,20}$/.test(appId),
     appSecret,
     redirectUri,
     redirectUriIsSecure: redirectUri.startsWith('https://'),
