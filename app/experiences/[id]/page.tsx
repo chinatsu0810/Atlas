@@ -8,6 +8,7 @@ import { experienceTags, experiences, tags, users } from '@/lib/db/schema';
 import { deleteExperience } from '@/lib/experiences/actions';
 import { getSession } from '@/lib/auth/session';
 import { isAdmin } from '@/lib/auth/permissions';
+import { displayAuthorName } from '@/lib/users/display';
 import { BackButton } from '@/components/back-button';
 
 type Props = {
@@ -24,6 +25,7 @@ async function getExperience(id: number) {
       createdAt: experiences.createdAt,
       authorId: experiences.authorId,
       authorName: users.name,
+      authorDeletedAt: users.deletedAt,
     })
     .from(experiences)
     .leftJoin(users, eq(experiences.authorId, users.id))
@@ -155,7 +157,11 @@ export default async function ExperiencePage({ params }: Props) {
 
             <div className="mt-4 md:mt-5 flex items-center justify-between gap-3 text-xs text-muted-foreground">
               <span>
-                投稿者：{experience.authorName || '匿名'}
+                投稿者：
+                {displayAuthorName(
+                  experience.authorName,
+                  experience.authorDeletedAt
+                )}
               </span>
 
               <span>

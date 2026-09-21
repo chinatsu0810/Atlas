@@ -86,7 +86,7 @@ export const signIn = validatedAction(
       .from(users)
       .leftJoin(teamMembers, eq(users.id, teamMembers.userId))
       .leftJoin(teams, eq(teamMembers.teamId, teams.id))
-      .where(eq(users.email, email))
+      .where(and(eq(users.email, email), isNull(users.deletedAt)))
       .limit(1);
 
     if (userWithTeam.length === 0) {

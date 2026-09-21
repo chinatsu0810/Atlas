@@ -21,6 +21,7 @@ import {
 
 import { getSession } from '@/lib/auth/session';
 import { isAdmin } from '@/lib/auth/permissions';
+import { displayAuthorName } from '@/lib/users/display';
 import { AnswerForm } from './answer-form';
 import { DeleteAnswerButton } from './delete-answer-button';
 import { BackButton } from '@/components/back-button';
@@ -39,6 +40,7 @@ async function getQuestion(id: number) {
       createdAt: questions.createdAt,
       authorId: questions.authorId,
       authorName: users.name,
+      authorDeletedAt: users.deletedAt,
       featuredForAnswer: questions.featuredForAnswer,
     })
     .from(questions)
@@ -122,6 +124,7 @@ export default async function QuestionPage({ params }: Props) {
       content: answers.content,
       createdAt: answers.createdAt,
       authorName: users.name,
+      authorDeletedAt: users.deletedAt,
     })
     .from(answers)
     .leftJoin(users, eq(answers.authorId, users.id))
@@ -188,7 +191,11 @@ export default async function QuestionPage({ params }: Props) {
 
             <div className="mt-4 md:mt-5 flex items-center justify-between gap-3 text-xs text-muted-foreground">
               <span>
-                質問者：{question.authorName || '匿名'}
+                質問者：
+                {displayAuthorName(
+                  question.authorName,
+                  question.authorDeletedAt
+                )}
               </span>
 
               <span>
@@ -288,7 +295,10 @@ export default async function QuestionPage({ params }: Props) {
                     <div className="text-xs md:text-sm text-muted-foreground">
                       回答・{index + 1}
                       <span className="ml-2">
-                        {answer.authorName || '匿名'}
+                        {displayAuthorName(
+                          answer.authorName,
+                          answer.authorDeletedAt
+                        )}
                       </span>
                     </div>
 

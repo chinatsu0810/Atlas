@@ -10,6 +10,7 @@ import {
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import { db } from '@/lib/db/drizzle';
 import { experiences, questions, users } from '@/lib/db/schema';
+import { displayAuthorName } from '@/lib/users/display';
 
 const popularSearchTags = [
   'インド',
@@ -171,6 +172,7 @@ export default async function DashboardPage() {
       country: experiences.country,
       createdAt: experiences.createdAt,
       authorName: users.name,
+      authorDeletedAt: users.deletedAt,
     })
     .from(experiences)
     .leftJoin(users, eq(experiences.authorId, users.id))
@@ -418,7 +420,10 @@ className="relative left-1/2 h-[225px] w-[105vw] -translate-x-1/2 bg-contain bg-
                     </p>
 
                     <CardMetaRow
-                      author={experience.authorName || '匿名'}
+                      author={displayAuthorName(
+                        experience.authorName,
+                        experience.authorDeletedAt
+                      )}
                       date={new Date(experience.createdAt).toLocaleDateString('ja-JP')}
                     />
                   </div>
