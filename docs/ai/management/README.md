@@ -15,12 +15,14 @@ Atlas運営全体の意思決定を支援するAI組織。会長（ユーザー�
 - **会長（ユーザー）**: Atlasの最終責任者。理念を守り、軸を決め、最終判断を行う。AIではない。
 - **社長**: 会議のファシリテーター。論点整理・進行管理・脱線防止・事実と仮説の整理・
   最終要約を行う。意思決定者ではない。
-- **経営判断室**（5名）:
+- **経営判断室**（6名）:
   - なぜなぜ上司: 原因を掘る、判断理由を明確化する、事実と推測を分ける（最大5段階程度）
   - 意思決定担当: 選択肢整理、メリット・デメリット整理、判断材料整理。一次案の取りまとめも担当
   - 反対意見担当: 前提を疑う、リスク確認、別解提示
   - ユーザー視点担当: 顧客・利用者視点からAtlas利用者にとっての価値を確認する
   - 撤退判断担当: 成功条件・撤退条件・評価期間の設定
+  - 実験推進担当（ジッケン）: 出た指摘・懸念を受け止め、「それは致命的か？」を見極めたうえで、小さく試せる実験に変換する。
+    議論が指摘で止まらないよう「次に何をするか」まで進める。詳細は [experiment-driver.md](./experiment-driver.md)
 - **監査室**: 経営判断室の一次案を監査する。KPI妥当性・前提確認・手段の目的化防止を確認し、
   問題があれば差し戻す（Threadsチームの検品担当とは別のAI社員）。
 
@@ -31,8 +33,11 @@ Atlas運営全体の意思決定を支援するAI組織。会長（ユーザー�
 ↓
 ② 社長が案件整理（現状・課題・仮説・判断したいこと）
 ↓
-③ 経営判断室が発言（5名が順番に発言。Employee同士は直接会話せず、
-   直前までの発言をWorkflowがまとめて渡す）
+③ 経営判断室が発言（6名が順番に発言。Employee同士は直接会話せず、
+   直前までの発言をWorkflowがまとめて渡す。
+   発言順: なぜなぜ上司 → 意思決定担当 → 反対意見担当 → ユーザー視点担当 → 撤退判断担当
+   → 実験推進担当。実験推進担当は必ず最後に発言し、それまでの指摘・懸念を
+   「案／懸念／致命度／最小実験／期間／見る数字・反応／次の判断」の形で実験に変換する）
 ↓
 ④ 会長への質問（判断に必要な情報が不足している場合のみ。なければ⑥へ）
 ↓
@@ -51,6 +56,16 @@ Atlas運営全体の意思決定を支援するAI組織。会長（ユーザー�
 `awaiting_owner_input`（④）と `awaiting_owner_decision`（⑨）でのみ、会長の操作を
 待って処理が停止する。それ以外の工程は会議作成・回答送信のリクエスト内で一気に実行される。
 
+## 会議での意思決定ルール
+
+- **AIは決定しない。** 実験推進担当も含め、AI社員は「実行するかどうか」を決めない。実験案・判断条件を整理して会長に返す
+- **指摘で議論を止めない。** 指摘（反対意見担当・ユーザー視点担当・撤退判断担当など）は、実験推進担当が
+  「致命的か？／今考える必要があるか？／小さく確認できないか？」を整理し、実験に変換して次の一手まで進める
+- **致命的な問題は実験にしない。** 取り返しがつかない・利用者に実害・Atlasの理念を損なう・法令に反する恐れがある問題は、
+  「今すぐ止めるべき」として明示する。実験推進担当がこれを押し切ることはない
+- **続ける／修正する／やめる条件は実験の前に決める。** 結果を見てから基準を動かさない
+- 指摘は無視・軽視されない。実験推進担当の発言の後も、一次案・監査室レビュー・総括の中でリスクは扱われる
+
 ## できないこと（初期版のスコープ外）
 
 - 会長への質問の往復は最大2ラウンドまで（上限に達した場合、残った質問は
@@ -58,7 +73,9 @@ Atlas運営全体の意思決定を支援するAI組織。会長（ユーザー�
 - 監査室の差し戻しは最大1回まで自動でやり直す（上限に達した場合、監査室の指摘を
   総括に残したうえで先へ進める）
 - 会議の議事録・意思決定内容をKnowledge（MDファイル等）へ蓄積する機能は未実装
-- バーチャルオフィス（`/office`）では経営判断室5名をまとめて1つの状態として表示する
+- 実験の結果を会議へ戻して再評価する仕組みは未実装（実験推進担当が出すのは、実験の設計と判断条件まで。
+  実際に試すこと・結果を見て判断することは会長・運営が行い、必要なら新しい案件として会議に持ち込む）
+- バーチャルオフィス（`/office`）では経営判断室6名をまとめて1つの状態として表示する
   （個別の発言内容は会議詳細画面で確認する）
 
 ## オフィス上での位置づけ
@@ -67,7 +84,7 @@ Atlas運営全体の意思決定を支援するAI組織。会長（ユーザー�
 
 | 部屋 | リズム | 内容 |
 |---|---|---|
-| 会議室（経営判断会議） | 随時 | 案件があるときに会長が会議を開く。開催中の会議の状況を表示し、会長の回答・判断が必要なときは強調表示する |
+| 会議室（経営判断会議） | 随時 | 案件があるときに会長が会議を開く。開催中の会議の状況を表示し、会長の回答・判断が必要なときは強調表示する。開催中の会議があっても「新しい会議を開く」から、クローズを待たずに次の案件を持ち込める |
 | Threads運用室 | 週次 | 週1回、今週分の投稿案をまとめて作成・確認する。今週分の作成状況と、確認待ち・要修正の件数を表示する |
 
 ## 関連ドキュメント
@@ -82,11 +99,11 @@ Threadsチーム（SNS運用）については [docs/ai/social/README.md](../soc
   - `app/office/meeting/[id]/page.tsx` + `meeting-view.tsx`（`/office/meeting/[id]`）: 会議詳細・質問回答・会長の判断記録
 - API: `app/api/office/meeting/route.ts`（`POST /api/office/meeting` - 案件投入から社長整理・経営判断室の議論までを実行する）
 - オフィス表示への接続: `lib/office/management-team.ts`（社員の状態と会議室の状況を、直近の会議から組み立てる）
-- Server Actions: `lib/ai/management/actions.ts`（会議の進行制御。質問への回答・会長の判断記録・一覧取得。いずれも運営のみ実行可）
+- Server Actions: `lib/ai/management/actions.ts`（会議の進行制御。質問への回答・会長の判断記録・会議の削除（議論の記録も一緒に削除）・一覧取得。いずれも運営のみ実行可）
 - Workflow: `lib/ai/workflows/management-meeting.ts`（会議の進行。誰が・どの順で・どこで止まるかを定義。構造は [docs/ai/architecture.md](../architecture.md) を参照）
 - 記録役（DB保存）: `lib/ai/management/recorder.ts`
-- 人格定義（Employee）: `lib/ai/employees/{president,why-analyst,decision-maker,contrarian,user-advocate,exit-planner,management-auditor}.ts`
-- 作業指示（Skill）: `lib/ai/skills/{meeting-framing,why-analysis,decision-framework,risk-check,user-perspective,exit-criteria,proposal-drafting,proposal-review,meeting-summary}.ts`
+- 人格定義（Employee）: `lib/ai/employees/{president,why-analyst,decision-maker,contrarian,user-advocate,exit-planner,experiment-driver,management-auditor}.ts`
+- 作業指示（Skill）: `lib/ai/skills/{meeting-framing,why-analysis,decision-framework,risk-check,user-perspective,exit-criteria,experiment-design,proposal-drafting,proposal-review,meeting-summary}.ts`
 - プロンプトの共有ヘルパー: `lib/ai/management/prompt.ts`
 - 型・バリデーション: `lib/ai/management/types.ts`
 - DB: `management_meetings` / `meeting_messages` テーブル（`lib/db/schema.ts`）

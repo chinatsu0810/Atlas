@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, MessageCircleQuestion, Send } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, Loader2, MessageCircleQuestion, Send, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -15,6 +16,7 @@ import type {
 import {
   answerMeetingQuestions,
   closeMeetingWithOwnerDecision,
+  deleteMeeting,
 } from '@/lib/ai/management/actions';
 import { getEmployeeById } from '@/lib/ai/employees';
 
@@ -67,6 +69,19 @@ const FIELD_LABELS: Record<string, string> = {
   successCriteria: '成功条件',
   exitCriteria: '撤退条件',
   evaluationPeriod: '評価期間',
+  proposal: '案',
+  concerns: '懸念',
+  concern: '指摘',
+  raisedBy: '指摘した人',
+  severity: '致命度',
+  reason: '判断の理由',
+  minimalExperiment: '最小実験',
+  duration: '期間',
+  metrics: '見る数字・反応',
+  nextDecision: '次の判断',
+  continueIf: '続ける条件',
+  reviseIf: '修正する条件',
+  stopIf: 'やめる条件',
   openQuestions: '未確認・未解決事項',
   verdict: '判定',
   comments: 'コメント',
@@ -209,6 +224,8 @@ export function MeetingView({
 }: {
   initialMeeting: MeetingWithMessages;
 }) {
+  const router = useRouter();
+
   const [meeting, setMeeting] = useState<MeetingWithMessages>(initialMeeting);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -269,6 +286,40 @@ export function MeetingView({
     }
   };
 
+  const handleDelete = async () => {
+    if (isSubmitting) return;
+
+    if (
+      !window.confirm(
+        'この会議を削除しますか？\n議論の記録もすべて削除され、元に戻せません。'
+      )
+    ) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrorMessage('');
+
+    try {
+      const result = await deleteMeeting(meeting.id);
+
+      if (!result.ok) {
+        setErrorMessage(result.error);
+        setIsSubmitting(false);
+        return;
+      }
+
+      // 削除後は会議室（一覧）へ戻る。オフィス側の表示も最新にする
+      router.push('/office/meeting');
+      router.refresh();
+    } catch {
+      setErrorMessage(
+        '削除が完了しませんでした（通信の失敗の可能性があります）。ページを再読み込みして、削除されたか確認してください。'
+      );
+      setIsSubmitting(false);
+    }
+  };
+
   const handleDecisionSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
@@ -300,13 +351,25 @@ export function MeetingView({
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-6 md:px-6 md:py-10">
-      <Link
-        href="/office/meeting"
-        className="mb-5 inline-flex items-center gap-2 text-sm text-[#6B8498] hover:text-[#123B5D]"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        会議室へ戻る
-      </Link>
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <Link
+          href="/office/meeting"
+          className="inline-flex items-center gap-2 text-sm text-[#6B8498] hover:text-[#123B5D]"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          会議室へ戻る
+        </Link>
+
+        <button
+          type="button"
+          onClick={handleDelete}
+          disabled={isSubmitting}
+          className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs text-gray-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+          この会議を削除
+        </button>
+      </div>
 
       <div className="mb-6">
         <span className="mb-2 inline-block rounded-full bg-gray-900 px-3 py-1 text-xs font-medium text-white">

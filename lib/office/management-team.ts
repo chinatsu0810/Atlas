@@ -1,4 +1,4 @@
-// 「経営判断室」のバーチャルオフィス接続部分（社長・経営判断室5名・監査室担当）。
+// 「経営判断室」のバーチャルオフィス接続部分（社長・経営判断室6名・監査室担当）。
 //
 // lib/office/social-team.ts と同じ考え方で、既存のAI社員実装（lib/ai/management）を
 // 一切変更・再実装しない。直近の会議（getLatestMeeting）を読み取り専用で参照し、
@@ -21,6 +21,7 @@ type ManagementRole =
   | 'contrarian'
   | 'user-advocate'
   | 'exit-planner'
+  | 'experiment-driver'
   | 'management-auditor';
 
 const ROLE_CONFIG: Record<
@@ -63,6 +64,12 @@ const ROLE_CONFIG: Record<
     role: '撤退判断担当',
     avatar: '/office/avatars/exit-planner.png',
   },
+  'experiment-driver': {
+    id: 'experiment-driver',
+    name: 'ジッケン',
+    role: '実験推進担当',
+    avatar: '/office/avatars/experiment-driver.png',
+  },
   'management-auditor': {
     id: 'management-auditor',
     name: 'シンサ',
@@ -77,6 +84,7 @@ const COMMITTEE_ROLES: ManagementRole[] = [
   'contrarian',
   'user-advocate',
   'exit-planner',
+  'experiment-driver',
 ];
 
 const TEAM_NAME = '経営判断室';
@@ -124,8 +132,8 @@ function statusEntry(
 
 /**
  * 既存の MeetingStage（lib/ai/management/types.ts）を、
- * オフィス表示用の7名分のステータスに変換する。
- * 経営判断室5名は個別に発言順を追わず、議論フェーズかどうかだけをまとめて表示する
+ * オフィス表示用の8名分のステータスに変換する。
+ * 経営判断室6名は個別に発言順を追わず、議論フェーズかどうかだけをまとめて表示する
  * （個別の発言内容は /office/meeting/[id] で確認する）。
  */
 function deriveManagementTeamFromMeeting(meeting: Meeting | null): OfficeEmployee[] {
@@ -243,6 +251,10 @@ function deriveMeetingRoom(meeting: Meeting | null): OfficeRoom {
         meeting.stage === 'awaiting_owner_decision'),
     enterRoute: isActive ? `${MEETING_ROOM_ROUTE}/${meeting.id}` : MEETING_ROOM_ROUTE,
     enterLabel: isActive ? '会議に参加する' : '会議室に入る',
+    // 開催中の会議があっても、クローズを待たずに次の案件を持ち込めるようにする
+    ...(isActive
+      ? { secondaryRoute: MEETING_ROOM_ROUTE, secondaryLabel: '新しい会議を開く' }
+      : {}),
   };
 }
 

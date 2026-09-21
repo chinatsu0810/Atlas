@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { Bell, Building2, Clock, DoorOpen } from 'lucide-react';
+import { Bell, Building2, Clock, DoorOpen, Plus } from 'lucide-react';
 
 import type { OfficeEmployee, OfficeRoom, OfficeState } from '@/lib/office/types';
 import { EmployeeAvatar } from './employee-avatar';
@@ -93,17 +93,29 @@ function RoomPanel({
           </p>
         </div>
 
-        <Link
-          href={room.enterRoute}
-          className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold shadow-sm transition md:text-sm ${
-            room.needsAttention
-              ? 'bg-orange-500 text-white hover:bg-orange-600'
-              : 'border border-[#DCEAF2] bg-white text-[#406783] hover:bg-[#F3F9FC]'
-          }`}
-        >
-          <DoorOpen className="h-4 w-4" />
-          {room.enterLabel}
-        </Link>
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {room.secondaryRoute && room.secondaryLabel && (
+            <Link
+              href={room.secondaryRoute}
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#DCEAF2] bg-white px-4 py-2 text-xs font-semibold text-[#406783] shadow-sm transition hover:bg-[#F3F9FC] md:text-sm"
+            >
+              <Plus className="h-4 w-4" />
+              {room.secondaryLabel}
+            </Link>
+          )}
+
+          <Link
+            href={room.enterRoute}
+            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold shadow-sm transition md:text-sm ${
+              room.needsAttention
+                ? 'bg-orange-500 text-white hover:bg-orange-600'
+                : 'border border-[#DCEAF2] bg-white text-[#406783] hover:bg-[#F3F9FC]'
+            }`}
+          >
+            <DoorOpen className="h-4 w-4" />
+            {room.enterLabel}
+          </Link>
+        </div>
       </div>
 
       <MemberList members={members} />

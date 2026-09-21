@@ -51,7 +51,7 @@ export type MeetingFraming = z.infer<typeof meetingFramingSchema>;
 
 // ============================================================
 // ③経営判断室が発言 / ⑤追加議論
-// 5名共通の入力コンテキスト。Employee同士が直接会話せず、
+// 経営判断室の全員に共通の入力コンテキスト。Employee同士が直接会話せず、
 // Workflow（lib/ai/management/workflow.ts）が直前までの発言をまとめて渡す。
 // ============================================================
 
@@ -130,6 +130,34 @@ export const exitCriteriaSchema = z.object({
 });
 
 export type ExitCriteria = z.infer<typeof exitCriteriaSchema>;
+
+// 実験推進担当の出力。議論で出た懸念を、小さく試せる実験に変換して
+// 「案 / 懸念 / 致命度 / 最小実験 / 期間 / 見る数字・反応 / 次の判断」の形で持ち込む。
+export const EXPERIMENT_SEVERITY_STOP = '今すぐ止めるべき';
+export const EXPERIMENT_SEVERITY_VERIFIABLE = '検証可能';
+
+export const experimentPlanSchema = z.object({
+  proposal: z.string(), // 案：何をやるのか
+  concerns: z.array(
+    z.object({
+      concern: z.string(), // 他の社員から出た主な指摘
+      raisedBy: z.string(), // 誰の指摘か
+      severity: z.enum([EXPERIMENT_SEVERITY_STOP, EXPERIMENT_SEVERITY_VERIFIABLE]), // 致命度
+      reason: z.string(), // その致命度と判断した理由
+    })
+  ),
+  minimalExperiment: z.string(), // 最小実験
+  duration: z.string(), // 期間
+  metrics: z.array(z.string()), // 見る数字・反応
+  nextDecision: z.object({
+    continueIf: z.string(), // 続ける条件
+    reviseIf: z.string(), // 修正する条件
+    stopIf: z.string(), // やめる条件
+  }),
+  questionsForOwner: z.array(z.string()),
+});
+
+export type ExperimentPlan = z.infer<typeof experimentPlanSchema>;
 
 // ============================================================
 // ⑥経営判断室の一次案作成（意思決定担当が全体を統合してまとめる）

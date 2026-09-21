@@ -21,6 +21,7 @@ import { decisionMakerEmployee } from '@/lib/ai/employees/decision-maker';
 import { contrarianEmployee } from '@/lib/ai/employees/contrarian';
 import { userAdvocateEmployee } from '@/lib/ai/employees/user-advocate';
 import { exitPlannerEmployee } from '@/lib/ai/employees/exit-planner';
+import { experimentDriverEmployee } from '@/lib/ai/employees/experiment-driver';
 import { managementAuditorEmployee } from '@/lib/ai/employees/management-auditor';
 
 import { threadResearchSkill } from '@/lib/ai/skills/thread-research';
@@ -36,6 +37,7 @@ import { proposalDraftingSkill } from '@/lib/ai/skills/proposal-drafting';
 import { riskCheckSkill } from '@/lib/ai/skills/risk-check';
 import { userPerspectiveSkill } from '@/lib/ai/skills/user-perspective';
 import { exitCriteriaSkill } from '@/lib/ai/skills/exit-criteria';
+import { experimentDesignSkill } from '@/lib/ai/skills/experiment-design';
 import { proposalReviewSkill } from '@/lib/ai/skills/proposal-review';
 import { factCheckSkill } from '@/lib/ai/skills/fact-check';
 import { kpiReviewSkill } from '@/lib/ai/skills/kpi-review';
@@ -55,6 +57,7 @@ const ASSIGNMENTS: [Employee, AnySkill[]][] = [
   [contrarianEmployee, [riskCheckSkill]],
   [userAdvocateEmployee, [userPerspectiveSkill]],
   [exitPlannerEmployee, [exitCriteriaSkill]],
+  [experimentDriverEmployee, [experimentDesignSkill]],
   [managementAuditorEmployee, [proposalReviewSkill, factCheckSkill]],
 ];
 

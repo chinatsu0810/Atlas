@@ -24,9 +24,14 @@ EmployeeとSkillは、Workflowを知らない。Skillは社員を知らない。
 `lib/ai/core/skill.ts` の `Skill` 型は、Claudeへの作業指示・入力からのプロンプト生成・出力スキーマを持つ。
 `runSkill(skill, employee, input)` が、社員の人格とスキルの作業指示を組み合わせて実行し、出力を検証して返す。
 
+`runSkill` / `runStep` は、任意で `effort`（思考の深さ。`low`〜`max`）を受け取れる。低いほど速く安い。
+指定しなければAPIの既定（`high`）で動く。経営判断会議は、AI呼び出しが約10回直列になるため
+`MEETING_EFFORT`（`lib/ai/workflows/management-meeting.ts`。現在は `medium`）を指定している。
+思考トークンも `max_tokens` に含まれるため、出力が長いスキルは `maxTokens` に余裕を持たせる。
+
 スキルは社員から独立して管理する。現在のスキル:
 
-- 経営判断: `meeting-framing` / `why-analysis` / `decision-framework` / `risk-check` / `user-perspective` / `exit-criteria` / `proposal-drafting` / `proposal-review` / `meeting-summary`
+- 経営判断: `meeting-framing` / `why-analysis` / `decision-framework` / `risk-check` / `user-perspective` / `exit-criteria` / `experiment-design` / `proposal-drafting` / `proposal-review` / `meeting-summary`
 - Threads: `thread-research` / `thread-topic-planning` / `thread-planning` / `thread-writing` / `thread-quality-check`
 - 汎用: `fact-check`（現時点では、どのWorkflowにも組み込まれていない）/ `kpi-review`（KPIレビューWorkflowで使用）
 

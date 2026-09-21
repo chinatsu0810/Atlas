@@ -4,7 +4,7 @@
 // 直接会話することはなく、必ずWorkflowが1ステップずつ呼び出す。
 
 import type { Employee } from '@/lib/ai/core/employee';
-import { runSkill, type Skill } from '@/lib/ai/core/skill';
+import { runSkill, type RunSkillOptions, type Skill } from '@/lib/ai/core/skill';
 import { isSkillAssigned } from '@/lib/ai/skill-assignments';
 
 export class SkillNotAssignedError extends Error {}
@@ -31,7 +31,8 @@ export function defineStep<TInput, TOutput>(
 
 export function runStep<TInput, TOutput>(
   step: WorkflowStep<TInput, TOutput>,
-  input: TInput
+  input: TInput,
+  options?: RunSkillOptions
 ): Promise<TOutput> {
-  return runSkill(step.skill, step.employee, input);
+  return runSkill(step.skill, step.employee, input, options);
 }

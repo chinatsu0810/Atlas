@@ -12,6 +12,7 @@ import { decisionMakerEmployee } from '@/lib/ai/employees/decision-maker';
 import { contrarianEmployee } from '@/lib/ai/employees/contrarian';
 import { userAdvocateEmployee } from '@/lib/ai/employees/user-advocate';
 import { exitPlannerEmployee } from '@/lib/ai/employees/exit-planner';
+import { experimentDriverEmployee } from '@/lib/ai/employees/experiment-driver';
 import { managementAuditorEmployee } from '@/lib/ai/employees/management-auditor';
 import { getEmployeeById } from '@/lib/ai/employees';
 
@@ -21,6 +22,7 @@ import { decisionFrameworkSkill } from '@/lib/ai/skills/decision-framework';
 import { riskCheckSkill } from '@/lib/ai/skills/risk-check';
 import { userPerspectiveSkill } from '@/lib/ai/skills/user-perspective';
 import { exitCriteriaSkill } from '@/lib/ai/skills/exit-criteria';
+import { experimentDesignSkill } from '@/lib/ai/skills/experiment-design';
 import { proposalDraftingSkill } from '@/lib/ai/skills/proposal-drafting';
 import { proposalReviewSkill } from '@/lib/ai/skills/proposal-review';
 import { meetingSummarySkill } from '@/lib/ai/skills/meeting-summary';
@@ -38,7 +40,21 @@ import {
   type PriorStatement,
 } from '@/lib/ai/management/types';
 
+import type { SkillEffort } from '@/lib/ai/core/skill';
+
 import { defineStep, runStep, type WorkflowStep } from './step';
+
+// 会議の各ステップの思考の深さ。1回の会議でAIを約10回直列に呼ぶため、既定（high）のままだと
+// 思考に時間がかかり、会議全体が5〜8分になる。速度と品質のバランスはここ1か所で調整する
+// （品質を優先するなら 'high'、さらに速くするなら 'low'）。
+export const MEETING_EFFORT: SkillEffort = 'medium';
+
+function runMeetingStep<TInput, TOutput>(
+  step: WorkflowStep<TInput, TOutput>,
+  input: TInput
+): Promise<TOutput> {
+  return runStep(step, input, { effort: MEETING_EFFORT });
+}
 
 // 会長への質問往復の上限（初回議論＋この回数まで再議論する）。
 // 上限に達した場合は、残った質問を一次案の未確認事項として引き継ぎ、先へ進める。
@@ -60,12 +76,17 @@ const SUMMARY = defineStep(presidentEmployee, meetingSummarySkill);
 // 経営判断室の発言順。並びがそのまま発言順になる。
 // 発言者を増やす・減らす・入れ替えるときはこの配列だけを変更する
 // （各Skillの出力は、会長への質問 questionsForOwner を持つこと）。
+//
+// 実験推進担当は、指摘（反対意見・利用者視点の懸念・撤退条件）がすべて出たあとに
+// 発言できるよう、必ず最後に置く。指摘で議論が止まらないよう、指摘を「小さく試せる実験」に
+// 変換して次の一手まで進めるのがこの位置の役割（一次案はこの発言を含む全発言を材料にする）。
 const DISCUSSION_STEPS: WorkflowStep<DiscussionContext, { questionsForOwner: string[] }>[] = [
   defineStep(whyAnalystEmployee, whyAnalysisSkill),
   defineStep(decisionMakerEmployee, decisionFrameworkSkill),
   defineStep(contrarianEmployee, riskCheckSkill),
   defineStep(userAdvocateEmployee, userPerspectiveSkill),
   defineStep(exitPlannerEmployee, exitCriteriaSkill),
+  defineStep(experimentDriverEmployee, experimentDesignSkill),
 ];
 
 // ============================================================
@@ -106,7 +127,7 @@ export async function startMeeting(
   topic: string,
   recorder: MeetingRecorder
 ): Promise<MeetingProgress> {
-  const framing = await runStep(FRAMING, { topic });
+  const framing = await runMeetingStep(FRAMING, { topic });
 
   await recorder.say({
     authorType: 'employee',
@@ -158,7 +179,7 @@ async function continueMeeting(
   return 'awaiting_owner_decision';
 }
 
-// 経営判断室の5名を順番に実行する。Employee同士は直接会話しないため、
+// 経営判断室のメンバーを順番に実行する。Employee同士は直接会話しないため、
 // Workflowが直前までの発言をまとめて各ステップに渡す。
 async function runDiscussionRound(
   state: MeetingState,
@@ -168,7 +189,7 @@ async function runDiscussionRound(
   const questionsForOwner: string[] = [];
 
   for (const step of DISCUSSION_STEPS) {
-    const output = await runStep(step, {
+    const output = await runMeetingStep(step, {
       topic: state.topic,
       framing: state.framing,
       priorStatements: statements,
@@ -206,7 +227,7 @@ async function runProposalToOwnerDecision(
 
   await recorder.setStage('drafting_proposal');
 
-  let proposal = await runStep(PROPOSAL_DRAFTING, {
+  let proposal = await runMeetingStep(PROPOSAL_DRAFTING, {
     topic,
     framing,
     discussionStatements,
@@ -221,7 +242,7 @@ async function runProposalToOwnerDecision(
 
   await recorder.setStage('auditing_proposal');
 
-  let review = await runStep(PROPOSAL_REVIEW, { topic, framing, proposal });
+  let review = await runMeetingStep(PROPOSAL_REVIEW, { topic, framing, proposal });
   await recorder.say({
     authorType: 'employee',
     employeeId: PROPOSAL_REVIEW.employee.id,
@@ -242,7 +263,7 @@ async function runProposalToOwnerDecision(
       content: { note: '監査室の指摘を踏まえ、一次案を作り直します。' },
     });
 
-    proposal = await runStep(PROPOSAL_DRAFTING, {
+    proposal = await runMeetingStep(PROPOSAL_DRAFTING, {
       topic,
       framing,
       discussionStatements,
@@ -258,7 +279,7 @@ async function runProposalToOwnerDecision(
 
     await recorder.setStage('auditing_proposal');
 
-    review = await runStep(PROPOSAL_REVIEW, { topic, framing, proposal });
+    review = await runMeetingStep(PROPOSAL_REVIEW, { topic, framing, proposal });
     await recorder.say({
       authorType: 'employee',
       employeeId: PROPOSAL_REVIEW.employee.id,
@@ -269,7 +290,7 @@ async function runProposalToOwnerDecision(
 
   await recorder.setStage('summarizing');
 
-  const summary = await runStep(SUMMARY, {
+  const summary = await runMeetingStep(SUMMARY, {
     topic,
     framing,
     proposal,

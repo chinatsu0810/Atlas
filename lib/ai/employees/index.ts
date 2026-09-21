@@ -16,6 +16,7 @@ import { decisionMakerEmployee } from './decision-maker';
 import { contrarianEmployee } from './contrarian';
 import { userAdvocateEmployee } from './user-advocate';
 import { exitPlannerEmployee } from './exit-planner';
+import { experimentDriverEmployee } from './experiment-driver';
 import { managementAuditorEmployee } from './management-auditor';
 
 export const ALL_EMPLOYEES: Employee[] = [
@@ -31,6 +32,7 @@ export const ALL_EMPLOYEES: Employee[] = [
   contrarianEmployee,
   userAdvocateEmployee,
   exitPlannerEmployee,
+  experimentDriverEmployee,
   managementAuditorEmployee,
 ];
 

@@ -62,6 +62,9 @@ export type OfficeRoom = {
   needsAttention: boolean;
   enterRoute: string;
   enterLabel: string;
+  // 入室ボタンとは別の、もう1つの入口（任意）。例: 開催中の会議に参加するボタンとは別に、新しい会議を開くボタン
+  secondaryRoute?: string;
+  secondaryLabel?: string;
 };
 
 export type OfficeState = {

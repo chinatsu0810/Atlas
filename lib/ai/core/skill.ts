@@ -62,10 +62,19 @@ export type Skill<TInput, TOutput> = {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnySkill = Skill<any, any>;
 
+// 思考の深さ。低いほど速く安い（思考トークンも max_tokens に含まれるため、切れにくくもなる）。
+// 指定しない場合はAPIの既定（high）で動く。
+export type SkillEffort = 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+
+export type RunSkillOptions = {
+  effort?: SkillEffort;
+};
+
 export async function runSkill<TInput, TOutput>(
   skill: Skill<TInput, TOutput>,
   employee: Employee,
-  input: TInput
+  input: TInput,
+  options: RunSkillOptions = {}
 ): Promise<TOutput> {
   const ctx: SkillContext<TInput> = { employee, input };
 
@@ -85,6 +94,7 @@ ${skill.buildTaskInstructions(ctx)}`;
       messages: [{ role: 'user', content: skill.buildUserPrompt(ctx) }],
       output_config: {
         format: { type: 'json_schema', schema: skill.jsonSchema },
+        ...(options.effort ? { effort: options.effort } : {}),
       },
     });
   } catch (error) {

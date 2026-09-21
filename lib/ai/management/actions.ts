@@ -253,6 +253,24 @@ async function closeMeetingWithOwnerDecisionOrThrow(
   return getMeetingWithMessages(meetingId);
 }
 
+/**
+ * 会議を削除する。議論の記録（meeting_messages）は外部キーの cascade で一緒に消える。
+ * 進行中・判断待ち・判断済みのどの状態でも削除できる（処理が途中で止まった会議を片付けるため）。
+ */
+async function deleteMeetingOrThrow(meetingId: number): Promise<{ id: number }> {
+  await requireAdmin();
+
+  if (!Number.isInteger(meetingId)) {
+    throw new MeetingValidationError('会議の指定が正しくありません。');
+  }
+
+  await getMeetingRowOrThrow(meetingId);
+
+  await db.delete(managementMeetings).where(eq(managementMeetings.id, meetingId));
+
+  return { id: meetingId };
+}
+
 export async function getMeeting(meetingId: number): Promise<MeetingWithMessages> {
   await requireAdmin();
   return getMeetingWithMessages(meetingId);
@@ -331,4 +349,10 @@ export async function closeMeetingWithOwnerDecision(
   rawInput: unknown
 ): Promise<ActionResult<MeetingWithMessages>> {
   return runAction(() => closeMeetingWithOwnerDecisionOrThrow(meetingId, rawInput));
+}
+
+export async function deleteMeeting(
+  meetingId: number
+): Promise<ActionResult<{ id: number }>> {
+  return runAction(() => deleteMeetingOrThrow(meetingId));
 }
