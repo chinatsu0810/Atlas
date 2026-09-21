@@ -27,6 +27,7 @@ import { proposalDraftingSkill } from '@/lib/ai/skills/proposal-drafting';
 import { proposalReviewSkill } from '@/lib/ai/skills/proposal-review';
 import { meetingSummarySkill } from '@/lib/ai/skills/meeting-summary';
 
+import { AUDITOR_RULES, MEETING_COMMON_RULES } from '@/lib/ai/management/common-rules';
 import { MeetingStateError } from '@/lib/ai/management/errors';
 import {
   meetingFramingSchema,
@@ -49,11 +50,16 @@ import { defineStep, runStep, type WorkflowStep } from './step';
 // （品質を優先するなら 'high'、さらに速くするなら 'low'）。
 export const MEETING_EFFORT: SkillEffort = 'medium';
 
+// 会議の全ステップを、この関数経由で実行する。全員に共通ルール（短く・結論から）を差し込む。
+// 監査室だけは共通ルールの対象外で、代わりに「重大な指摘だけ」の別ルールを適用する。
 function runMeetingStep<TInput, TOutput>(
   step: WorkflowStep<TInput, TOutput>,
   input: TInput
 ): Promise<TOutput> {
-  return runStep(step, input, { effort: MEETING_EFFORT });
+  const sharedRules =
+    step.employee.id === managementAuditorEmployee.id ? AUDITOR_RULES : MEETING_COMMON_RULES;
+
+  return runStep(step, input, { effort: MEETING_EFFORT, sharedRules });
 }
 
 // 会長への質問往復の上限（初回議論＋この回数まで再議論する）。

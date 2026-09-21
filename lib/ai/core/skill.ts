@@ -68,6 +68,8 @@ export type SkillEffort = 'low' | 'medium' | 'high' | 'xhigh' | 'max';
 
 export type RunSkillOptions = {
   effort?: SkillEffort;
+  // 人格とスキル固有の作業指示の間に差し込む、共通ルール（例: 会議の社員に共通の「短く・結論から」）
+  sharedRules?: string;
 };
 
 export async function runSkill<TInput, TOutput>(
@@ -78,9 +80,13 @@ export async function runSkill<TInput, TOutput>(
 ): Promise<TOutput> {
   const ctx: SkillContext<TInput> = { employee, input };
 
-  const system = `${buildEmployeePersona(employee)}
-
-${skill.buildTaskInstructions(ctx)}`;
+  const system = [
+    buildEmployeePersona(employee),
+    options.sharedRules,
+    skill.buildTaskInstructions(ctx),
+  ]
+    .filter(Boolean)
+    .join('\n\n');
 
   const client = getAnthropicClient();
 

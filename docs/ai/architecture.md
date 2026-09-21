@@ -28,6 +28,8 @@ EmployeeとSkillは、Workflowを知らない。Skillは社員を知らない。
 指定しなければAPIの既定（`high`）で動く。経営判断会議は、AI呼び出しが約10回直列になるため
 `MEETING_EFFORT`（`lib/ai/workflows/management-meeting.ts`。現在は `medium`）を指定している。
 思考トークンも `max_tokens` に含まれるため、出力が長いスキルは `maxTokens` に余裕を持たせる。
+また `sharedRules` で、人格と作業指示の間に共通ルールを差し込める（経営判断会議が「短く・結論から」の共通ルールに使っている。
+[経営判断会議のREADME](./management/README.md#共通ルール短く結論から) を参照）。
 
 スキルは社員から独立して管理する。現在のスキル:
 

@@ -100,7 +100,7 @@ ${ATLAS_PHILOSOPHY}
 6. 考えるより聞いたほうが早いこと（会長にしか答えられないこと）だけを questionsForOwner に整理する。
 
 # 分量（簡潔に）
-- concerns は、判断に効く主な指摘に絞って最大4件。似た指摘はまとめる
+- concerns は、判断に効く主な指摘に絞って最大3件。似た指摘はまとめる
 - concern と reason はそれぞれ一〜二文まで。minimalExperiment・duration・nextDecision の各項目も短く具体的に
 - metrics は最大3件
 - questionsForOwner は最大3件。会長にしか答えられず、実験の設計に不可欠なものだけに絞る（会長への質問が出ると会議が止まるため）
