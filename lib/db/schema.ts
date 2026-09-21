@@ -7,6 +7,7 @@ import {
   integer,
   boolean,
   uniqueIndex,
+  index,
   jsonb,
 } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
@@ -909,3 +910,54 @@ export const threadsKpiReportsRelations = relations(
 
 export type ThreadsKpiReportRow = typeof threadsKpiReports.$inferSelect;
 export type NewThreadsKpiReportRow = typeof threadsKpiReports.$inferInsert;
+
+
+// ============================================================
+// Account Deletions
+// ユーザー削除（本人退会・運営削除）の記録と、30日後のパージ予定。
+// 仕様は docs/account-deletion.md。
+// users の行が将来消えても記録が残るように、users へのFKは張らない。
+// ============================================================
+
+export const accountDeletions = pgTable(
+  'account_deletions',
+  {
+    id: serial('id').primaryKey(),
+
+    // 削除されたユーザー（FKなし）
+    userId: integer('user_id').notNull(),
+
+    // 'full'（完全削除）| 'keep_content'（コンテンツを残す。運営のみ）
+    mode: varchar('mode', { length: 20 }).notNull(),
+
+    // 'self'（本人退会）| 'admin'（運営削除）
+    actorType: varchar('actor_type', { length: 10 }).notNull(),
+
+    // 運営が実行した場合の実行者（FKなし）
+    actorId: integer('actor_id'),
+
+    // 運営削除の理由（本人退会ではNULL）
+    reason: text('reason'),
+
+    // 運営削除で「再登録を拒否」を選んだ場合だけ保存する、メールのHMAC-SHA256
+    // （鍵はAUTH_SECRET由来）。本人退会では保存しない
+    emailHash: varchar('email_hash', { length: 64 }),
+
+    requestedAt: timestamp('requested_at').notNull().defaultNow(),
+
+    // requestedAt + 30日
+    purgeAfter: timestamp('purge_after').notNull(),
+
+    // パージ完了日時。NULLならまだ
+    purgedAt: timestamp('purged_at'),
+  },
+  (table) => ({
+    // パージ対象（未完了）の検索用
+    pendingIdx: index('account_deletions_pending_idx')
+      .on(table.purgeAfter)
+      .where(sql`${table.purgedAt} IS NULL`),
+  })
+);
+
+export type AccountDeletionRow = typeof accountDeletions.$inferSelect;
+export type NewAccountDeletionRow = typeof accountDeletions.$inferInsert;
