@@ -1,5 +1,5 @@
 // 「選択肢整理」Skill：選択肢・メリット/デメリット・判断材料を整理する。
-// 意思決定担当（lib/ai/employees/decision-maker.ts）が経営判断室の議論で使う。
+// ヒカク（lib/ai/employees/decision-maker.ts）が経営判断室の議論で使う。
 // どれを選ぶべきかという結論は出さない。
 
 import type { Skill } from '@/lib/ai/core/skill';

@@ -1,11 +1,11 @@
 import type { Employee } from '@/lib/ai/core/employee';
 
-// Threadsチームの検品担当（social-editor）とは対象・目的が異なる別のAI社員。
+// Threadsチームのケンピン（social-editor）とは対象・目的が異なる別のAI社員。
 // こちらは経営判断室の一次案を監査する。
 export const managementAuditorEmployee: Employee = {
   id: 'management-auditor',
   name: 'シンサ',
-  role: '監査室担当',
+  role: '一次案の監査・差し戻し',
   purpose:
     '経営判断室がまとめた一次案を監査する。KPIの妥当性、前提の確認、' +
     '手段が目的化していないかを確認し、問題があれば理由とともに差し戻す。',

@@ -5,7 +5,7 @@ import type { Employee } from '@/lib/ai/core/employee';
 export const socialPlannerEmployee: Employee = {
   id: 'social-planner',
   name: 'キカク',
-  role: 'SNS企画担当',
+  role: '投稿の切り口・構成の企画',
   purpose:
     'リサーチャーが整理した材料をもとに、投稿の切り口・構成・投稿方針を決める。' +
     '投稿文そのものは書かない（それはライターの仕事）。ライターに企画判断を持たせないための担当。',

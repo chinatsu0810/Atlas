@@ -74,7 +74,7 @@ export type DiscussionContext = {
   ownerAnswers: OwnerAnswer[];
 };
 
-// なぜなぜ上司の出力
+// ナゼの出力
 export const whyAnalysisSchema = z.object({
   chain: z.array(
     z.object({ question: z.string(), answer: z.string() })
@@ -86,7 +86,7 @@ export const whyAnalysisSchema = z.object({
 
 export type WhyAnalysis = z.infer<typeof whyAnalysisSchema>;
 
-// 意思決定担当の出力（討議時）
+// ヒカクの出力（討議時）
 export const decisionOptionsSchema = z.object({
   options: z.array(z.string()),
   prosAndCons: z.array(
@@ -102,7 +102,7 @@ export const decisionOptionsSchema = z.object({
 
 export type DecisionOptions = z.infer<typeof decisionOptionsSchema>;
 
-// 反対意見担当の出力
+// ギモンの出力
 export const riskCheckSchema = z.object({
   challengedAssumptions: z.array(z.string()),
   risks: z.array(z.string()),
@@ -112,7 +112,7 @@ export const riskCheckSchema = z.object({
 
 export type RiskCheck = z.infer<typeof riskCheckSchema>;
 
-// ユーザー視点担当の出力
+// リヨウシャの出力
 export const userPerspectiveSchema = z.object({
   userValue: z.array(z.string()),
   userConcerns: z.array(z.string()),
@@ -121,7 +121,7 @@ export const userPerspectiveSchema = z.object({
 
 export type UserPerspective = z.infer<typeof userPerspectiveSchema>;
 
-// 撤退判断担当の出力
+// テッタイの出力
 export const exitCriteriaSchema = z.object({
   successCriteria: z.array(z.string()),
   exitCriteria: z.array(z.string()),
@@ -131,7 +131,7 @@ export const exitCriteriaSchema = z.object({
 
 export type ExitCriteria = z.infer<typeof exitCriteriaSchema>;
 
-// 実験推進担当の出力。議論で出た懸念を、小さく試せる実験に変換して
+// スイシンの出力。議論で出た懸念を、小さく試せる実験に変換して
 // 「案 / 懸念 / 致命度 / 最小実験 / 期間 / 見る数字・反応 / 次の判断」の形で持ち込む。
 export const EXPERIMENT_SEVERITY_STOP = '今すぐ止めるべき';
 export const EXPERIMENT_SEVERITY_VERIFIABLE = '検証可能';
@@ -160,7 +160,7 @@ export const experimentPlanSchema = z.object({
 export type ExperimentPlan = z.infer<typeof experimentPlanSchema>;
 
 // ============================================================
-// ⑥経営判断室の一次案作成（意思決定担当が全体を統合してまとめる）
+// ⑥経営判断室の一次案作成（ヒカクが全体を統合してまとめる）
 // ============================================================
 
 export const proposalOptionSchema = z.object({

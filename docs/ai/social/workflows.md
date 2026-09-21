@@ -11,7 +11,7 @@
 ↓
 ライター担当がThreads投稿案を作成
 ↓
-検品担当が内容を確認
+ケンピンが内容を確認
 ↓
 問題あり：修正案を返す（ライターへ差し戻し、needs_revision）
 ↓
@@ -43,7 +43,7 @@ researching → planning → writing → auditing → needs_revision | pending_r
 | `researching` | リサーチ担当が材料整理中 | AI（自動） |
 | `planning` | 企画担当が切り口・構成・方針を検討中 | AI（自動） |
 | `writing` | ライター担当が投稿案を作成中 | AI（自動） |
-| `auditing` | 検品担当が確認中 | AI（自動） |
+| `auditing` | ケンピンが確認中 | AI（自動） |
 | `needs_revision` | 検品で修正が必要と判定された | 担当者が「修正して再検品」を実行 |
 | `pending_review` | 検品に合格し、人間の確認待ち | 担当者が「承認する」または「却下する」を実行 |
 | `approved` | 担当者が承認済み（まだ未投稿） | 担当者がThreadsへ手動投稿後「投稿済みにする」を実行 |
@@ -80,7 +80,7 @@ Threadsへの自動投稿処理は存在しないため、`approved` になっ�
 
 企画担当が決めた方針に沿って、投稿本文・ハッシュタグ・注意点を作成する（`writing`）。
 
-### 4. 検品担当が内容を確認
+### 4. ケンピンが内容を確認
 
 [guidelines.md](./guidelines.md) の確認項目に沿って投稿案を確認し、`pass` または `needs_revision` を判定する（`auditing`）。
 

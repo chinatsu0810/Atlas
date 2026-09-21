@@ -5,7 +5,7 @@ import type { Employee } from '@/lib/ai/core/employee';
 export const socialAnalystEmployee: Employee = {
   id: 'social-analyst',
   name: 'アナリ',
-  role: 'SNS分析担当',
+  role: '投稿の反応・数字の分析',
   purpose:
     '投稿の閲覧数・反応（いいね・返信・リポスト・引用・シェア）・フォロワー数を分析し、' +
     '傾向・懸念・仮説・改善の材料を整理する。渡された数字だけを根拠にする。',

@@ -37,31 +37,31 @@ const SOCIAL_ROLE_CONFIG: Record<
   researcher: {
     id: 'social-researcher',
     name: 'リサ',
-    role: 'SNSリサーチ担当',
+    role: '読者が語りたくなるテーマの発掘',
     avatar: '/office/avatars/social-researcher.png',
   },
   planner: {
     id: 'social-planner',
     name: 'キカク',
-    role: 'SNS企画担当',
+    role: '投稿の切り口・構成の企画',
     avatar: '/office/avatars/social-planner.png',
   },
   writer: {
     id: 'social-writer',
     name: 'ライタ',
-    role: 'SNSライター',
+    role: '投稿案の執筆',
     avatar: '/office/avatars/social-writer.png',
   },
   editor: {
     id: 'social-editor',
-    name: 'カンサ',
-    role: 'SNS検品担当',
+    name: 'ケンピン',
+    role: '公開前の投稿チェック（誤字・炎上リスク）',
     avatar: '/office/avatars/social-editor.png',
   },
   analyst: {
     id: 'social-analyst',
     name: 'アナリ',
-    role: 'SNS分析担当',
+    role: '投稿の反応・数字の分析',
     avatar: '/office/avatars/social-analyst.png',
   },
 };

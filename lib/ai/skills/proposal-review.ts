@@ -1,5 +1,5 @@
 // 「一次案監査」Skill：経営判断室がまとめた一次案を監査する。
-// 監査室担当（lib/ai/employees/management-auditor.ts）が使う。
+// シンサ（lib/ai/employees/management-auditor.ts）が使う。
 
 import type { Skill } from '@/lib/ai/core/skill';
 import {

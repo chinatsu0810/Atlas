@@ -35,7 +35,7 @@ export default async function QuestionsPage({
     ? 1
     : Math.max(1, parsedPage);
 
-  const pageSize = 20;
+  const pageSize = 21;
   const offset = (currentPage - 1) * pageSize;
 
   const tagList = await db

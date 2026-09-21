@@ -1,5 +1,5 @@
 // 「利用者視点分析」Skill：Atlas利用者から見た価値・懸念を確認する。
-// ユーザー視点担当（lib/ai/employees/user-advocate.ts）が経営判断室の議論で使う。
+// リヨウシャ（lib/ai/employees/user-advocate.ts）が経営判断室の議論で使う。
 
 import type { Skill } from '@/lib/ai/core/skill';
 import { ATLAS_DESCRIPTION } from '@/lib/ai/core/atlas-context';

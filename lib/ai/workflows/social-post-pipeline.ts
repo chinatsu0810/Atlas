@@ -66,7 +66,7 @@ function enforceEvidenceLevel(
   };
 }
 
-// 上限文字数を超えた投稿案は、検品担当の判定にかかわらず必ず差し戻す
+// 上限文字数を超えた投稿案は、ケンピンの判定にかかわらず必ず差し戻す
 // （「500文字を超える場合は削ること」をモデル任せにせず、Workflow側でも強制する）
 function enforcePostLengthLimit(
   result: AuditResult,

@@ -1,5 +1,5 @@
 // 「成功条件・撤退条件設定」Skill：成功条件・撤退条件・評価期間を設定する。
-// 撤退判断担当（lib/ai/employees/exit-planner.ts）が経営判断室の議論で使う。
+// テッタイ（lib/ai/employees/exit-planner.ts）が経営判断室の議論で使う。
 // 実行するかどうかの決定は行わない。
 
 import type { Skill } from '@/lib/ai/core/skill';

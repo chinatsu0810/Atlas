@@ -1,4 +1,4 @@
-// 「経営判断室」のバーチャルオフィス接続部分（社長・経営判断室6名・監査室担当）。
+// 「経営判断室」のバーチャルオフィス接続部分（社長・経営判断室6名・シンサ）。
 //
 // lib/office/social-team.ts と同じ考え方で、既存のAI社員実装（lib/ai/management）を
 // 一切変更・再実装しない。直近の会議（getLatestMeeting）を読み取り専用で参照し、
@@ -30,50 +30,50 @@ const ROLE_CONFIG: Record<
 > = {
   president: {
     id: 'president',
-    name: 'ショウ',
-    role: '社長',
+    name: '社長',
+    role: '会議進行・論点整理・総括',
     avatar: '/office/avatars/president.png',
   },
   'why-analyst': {
     id: 'why-analyst',
     name: 'ナゼ',
-    role: 'なぜなぜ上司',
+    role: '原因の深掘り（なぜなぜ分析）',
     avatar: '/office/avatars/why-analyst.png',
   },
   'decision-maker': {
     id: 'decision-maker',
-    name: 'ケツダン',
-    role: '意思決定担当',
+    name: 'ヒカク',
+    role: '選択肢の比較・一次案のとりまとめ',
     avatar: '/office/avatars/decision-maker.png',
   },
   contrarian: {
     id: 'contrarian',
     name: 'ギモン',
-    role: '反対意見担当',
+    role: '前提を疑う・リスク指摘',
     avatar: '/office/avatars/contrarian.png',
   },
   'user-advocate': {
     id: 'user-advocate',
     name: 'リヨウシャ',
-    role: 'ユーザー視点担当',
+    role: '利用者から見た価値と懸念の確認',
     avatar: '/office/avatars/user-advocate.png',
   },
   'exit-planner': {
     id: 'exit-planner',
     name: 'テッタイ',
-    role: '撤退判断担当',
+    role: '成功条件・撤退基準の設定',
     avatar: '/office/avatars/exit-planner.png',
   },
   'experiment-driver': {
     id: 'experiment-driver',
-    name: 'ジッケン',
-    role: '実験推進担当',
+    name: 'スイシン',
+    role: '指摘を小さな実験に落とし込む',
     avatar: '/office/avatars/experiment-driver.png',
   },
   'management-auditor': {
     id: 'management-auditor',
     name: 'シンサ',
-    role: '監査室担当',
+    role: '一次案の監査・差し戻し',
     avatar: '/office/avatars/management-auditor.png',
   },
 };

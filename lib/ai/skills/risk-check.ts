@@ -1,5 +1,5 @@
 // 「リスク確認」Skill：前提を疑い、リスクを確認し、別解を提示する。
-// 反対意見担当（lib/ai/employees/contrarian.ts）が経営判断室の議論で使う。
+// ギモン（lib/ai/employees/contrarian.ts）が経営判断室の議論で使う。
 // 目的は否定ではなく判断品質の向上。
 
 import type { Skill } from '@/lib/ai/core/skill';

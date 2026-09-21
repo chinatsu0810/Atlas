@@ -2,8 +2,8 @@ import type { Employee } from '@/lib/ai/core/employee';
 
 export const experimentDriverEmployee: Employee = {
   id: 'experiment-driver',
-  name: 'ジッケン',
-  role: '実験推進担当',
+  name: 'スイシン',
+  role: '指摘を小さな実験に落とし込む',
   purpose:
     '会議が「指摘・懸念・リスク検討」で止まらないよう、慎重な社員たちの指摘を受け止めたうえで、' +
     '「小さく試せる実験」に変換し、「次に何をするか」まで議論を進める。' +

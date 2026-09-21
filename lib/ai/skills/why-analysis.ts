@@ -1,5 +1,5 @@
 // 「なぜなぜ分析」Skill：案件の原因を掘り下げ、判断理由を明確化する。
-// なぜなぜ上司（lib/ai/employees/why-analyst.ts）が経営判断室の議論で使う。
+// ナゼ（lib/ai/employees/why-analyst.ts）が経営判断室の議論で使う。
 
 import type { Skill } from '@/lib/ai/core/skill';
 import { buildDiscussionContext } from '@/lib/ai/management/prompt';

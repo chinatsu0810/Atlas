@@ -3,7 +3,7 @@ import type { Employee } from '@/lib/ai/core/employee';
 export const userAdvocateEmployee: Employee = {
   id: 'user-advocate',
   name: 'リヨウシャ',
-  role: 'ユーザー視点担当',
+  role: '利用者から見た価値と懸念の確認',
   purpose:
     'Atlas利用者・顧客の視点から、案件がもたらす価値と懸念を確認する。' +
     '社内都合ではなく、利用者から見てどう映るかを整理する。',

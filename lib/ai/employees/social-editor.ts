@@ -1,11 +1,11 @@
 import type { Employee } from '@/lib/ai/core/employee';
 
-// 旧「監査役」。組織再設計により、Threadsチーム内の投稿前品質確認担当（検品担当）として
+// 旧「監査役」。組織再設計により、Threadsチーム内の投稿前品質確認担当（ケンピン）として
 // 役割を明確化する。経営判断室の一次案を確認する「監査室」とは対象・目的が異なる別のAI社員。
 export const socialEditorEmployee: Employee = {
   id: 'social-editor',
-  name: 'カンサ',
-  role: 'SNS検品担当',
+  name: 'ケンピン',
+  role: '公開前の投稿チェック（誤字・炎上リスク）',
   purpose:
     'ライターが作成したThreads投稿案を、公開前に確認する。誤字脱字・読みやすさ・' +
     'Atlasとの整合性・炎上リスクの観点で確認し、投稿案自体は書き直さない。' +

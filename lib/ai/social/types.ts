@@ -126,7 +126,7 @@ export const postPlanSchema = z.object({
 
 export type PostPlan = z.infer<typeof postPlanSchema>;
 
-// 検品担当の出力（要件で指定された形式そのまま。旧: 監査役の出力）
+// ケンピンの出力（要件で指定された形式そのまま。旧: 監査役の出力）
 export const auditResultSchema = z.object({
   approvedByAudit: z.boolean(),
   auditStatus: z.enum(['pass', 'needs_revision']),

@@ -83,7 +83,7 @@ const SUMMARY = defineStep(presidentEmployee, meetingSummarySkill);
 // 発言者を増やす・減らす・入れ替えるときはこの配列だけを変更する
 // （各Skillの出力は、会長への質問 questionsForOwner を持つこと）。
 //
-// 実験推進担当は、指摘（反対意見・利用者視点の懸念・撤退条件）がすべて出たあとに
+// スイシンは、指摘（反対意見・利用者視点の懸念・撤退条件）がすべて出たあとに
 // 発言できるよう、必ず最後に置く。指摘で議論が止まらないよう、指摘を「小さく試せる実験」に
 // 変換して次の一手まで進めるのがこの位置の役割（一次案はこの発言を含む全発言を材料にする）。
 const DISCUSSION_STEPS: WorkflowStep<DiscussionContext, { questionsForOwner: string[] }>[] = [
