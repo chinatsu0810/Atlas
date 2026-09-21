@@ -308,7 +308,37 @@ CREATE INDEX "account_deletions_pending_idx"
 | 保持期間切れのお問い合わせの削除（日次ジョブ、`vercel.json`、`CRON_SECRET`） | **実装済み。未デプロイ・未実行。** dry-run で本番DBの対象件数を確認済み（0件） |
 | 表示側の変更（作者名を「退会したユーザー」に）と `signIn` の `deletedAt` チェック | **実装済み。未コミット。** 現状の問題の2と4を塞ぐ。本番DBに退会済みユーザーがいない（会員3人、退会0人）ため、実データでの表示確認はまだできていない |
 | `account_deletions` のマイグレーション（[0018_account_deletions.sql](../lib/db/migrations/0018_account_deletions.sql)） | **本番DBに適用済み**（2026-09-21。SQLを1トランザクションで直接実行）。テーブルと部分インデックスを確認済みで、行は0件。**`npm run db:migrate` は使わないこと**（下の注意を参照） |
-| それ以外（`deleteUser`、パージ、運営削除、ポリシー） | 未着手 |
+| `deleteUser` 共通関数（[lib/account/delete-user.ts](../lib/account/delete-user.ts)） | **実装済み。どこからも呼んでいない。** 動作確認は [verify-delete-user.ts](../lib/account/verify-delete-user.ts)（後述） |
+| それ以外（`deleteAccount` の差し替え、パージ、運営削除の画面、ポリシー） | 未着手 |
+
+### `deleteUser` の実装メモ
+
+- `deleteUser(params)` は1トランザクションで実行する。本体の `deleteUserInTransaction(tx, params)` は、呼び出し側のトランザクション内で動く（テストで、実行後にロールバックするため）。
+- 実行できない条件に当たったときは、例外ではなく `{ ok: false, code, message }` を返す。`code`: `invalid_request` / `forbidden` / `not_found` / `already_deleted` / `is_owner` / `team_owner_has_members` / `billing_attached`。書き込みは、すべてのガードを通ってから始める。
+- 対象ユーザーの行を `FOR UPDATE` でロックし、同時実行による二重削除を防ぐ。
+- 運営削除の権限（実行者が `owner` ロール）も、関数の中で確認する。呼び出し側の確認に頼らない。
+- 本人による削除は完全削除のみ。「コンテンツを残す」と「再登録の拒否」は運営削除のみ。
+- **仕様書の表から具体化した点**
+  - 本人のメールアドレス宛ての招待は、A・Bどちらでも削除する（本人のメールアドレスが残らないようにするため）。
+  - 課金情報（`stripeCustomerId` / `stripeSubscriptionId`）が残っているチームの最後の1人は、削除を拒否する（`billing_attached`）。課金は未稼働なので、現状は発生しない。
+  - お問い合わせの `updated_at` は更新しない（保持期間の基準なので）。
+- 削除操作のログは `activity_logs` に残さない。`account_deletions` に記録する。
+- 再登録拒否の照合（サインアップ時に `email_hash` を確認する処理）は、まだ入れていない。運営削除の画面と一緒に入れる。
+
+### 動作確認（ロールバック付き）
+
+```bash
+npx tsx lib/account/verify-delete-user.ts
+```
+
+テストデータの作成から検証まで、すべて1つのトランザクションの中で行い、最後に必ずロールバックする。接続先のDBに行は残らない（`serial` の採番は進む）。次を確認している（68項目）。
+
+- 本人退会（完全削除）: 墓標化、削除の記録、関連テーブルの処理、他のユーザーに触れていないこと、二重実行の拒否
+- 運営削除（コンテンツを残す・再登録拒否）: コンテンツが残ること、招待の扱い、メールのHMAC
+- ガード: 各拒否条件で、何も変わらないこと
+- 他のメンバーがいるチームから、オーナーでないメンバーが抜けるケース
+
+実行時は本番DBに接続する（`POSTGRES_URL`）。実行後に、テストデータが残っていないことも確認する。
 
 ### 注意: `npm run db:migrate` は使えない
 
