@@ -7,6 +7,7 @@ import {
   exchangeCodeForShortLivedToken,
   exchangeForLongLivedToken,
   getMyProfile,
+  ThreadsApiError,
 } from '@/lib/threads/client';
 import { getThreadsConfig, THREADS_OAUTH_STATE_COOKIE } from '@/lib/threads/config';
 import { saveConnection } from '@/lib/threads/connection';
@@ -29,9 +30,14 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const finish = (result: string) => {
+  // detail は、運営の画面に表示する失敗の理由（Metaが返したメッセージ。トークンやシークレットは含まれない）
+  const finish = (result: string, detail?: string) => {
+    const query = new URLSearchParams({ threads: result });
+
+    if (detail) query.set('detail', detail.slice(0, 300));
+
     const response = NextResponse.redirect(
-      new URL(`/ai/social?threads=${result}`, request.url)
+      new URL(`/ai/social?${query.toString()}`, request.url)
     );
     response.cookies.delete({ name: THREADS_OAUTH_STATE_COOKIE, path: '/api/threads' });
     return response;
@@ -43,8 +49,13 @@ export async function GET(request: NextRequest) {
 
   const params = request.nextUrl.searchParams;
 
-  // ユーザーが認可を拒否した場合など
-  if (params.get('error')) return finish('denied');
+  // ユーザーが認可を拒否した場合など（Metaが理由を返していれば、それも画面に出す）
+  if (params.get('error')) {
+    return finish(
+      'denied',
+      params.get('error_description') ?? params.get('error_reason') ?? params.get('error') ?? undefined
+    );
+  }
 
   const code = params.get('code');
   const state = params.get('state');
@@ -70,11 +81,16 @@ export async function GET(request: NextRequest) {
     return finish('connected');
   } catch (error) {
     // トークンを含む可能性のある情報をログに出さないよう、メッセージのみ記録する
-    console.error(
-      'Threads connection failed:',
-      error instanceof Error ? error.message : 'unknown error'
-    );
+    const message = error instanceof Error ? error.message : 'unknown error';
 
-    return finish('error');
+    console.error('Threads connection failed:', message);
+
+    // Threads APIが返したメッセージだけを画面に出す（それ以外の内部エラーは、詳細を出さない）
+    return finish(
+      'error',
+      error instanceof ThreadsApiError
+        ? `${message}（コード: ${error.code ?? '不明'}、HTTP ${error.status}）`
+        : undefined
+    );
   }
 }

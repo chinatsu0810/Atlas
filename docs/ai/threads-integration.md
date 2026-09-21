@@ -29,7 +29,9 @@ https://www.atlas-community.jp/api/threads/callback
 3. アプリの設定で「有効なOAuthリダイレクトURI」に、上のURLを登録する
 4. 「Add or Remove Threads Test Users」で、運用するThreadsアカウントを **Threads Tester** にし、Threadsアプリ側で招待を承認する
 5. **Vercelの環境変数**に、次を設定して再デプロイする
-   - `THREADS_APP_ID` / `THREADS_APP_SECRET`（Metaのアプリの値）
+   - `THREADS_APP_ID` / `THREADS_APP_SECRET`: Metaダッシュボードの「App settings → Basic」にある **「Threads App ID」「Threads app secret」**。
+     ページ上部の「App ID」「App secret」とは**別の値**なので、取り違えないこと（取り違えると、認可時に
+     「URLはブロックされています: リダイレクトURIがアプリのクライアントOAuth設定で…」というエラーになりうる）
    - `THREADS_REDIRECT_URI` = 上のURL（`BASE_URL` とは独立して指定できる。`www` の有無も含めて、Metaに登録した値と完全に一致させる）
    - `ANTHROPIC_API_KEY` / `AUTH_SECRET` / `POSTGRES_URL`（本番で未設定の場合）
 6. **本番サイトに運営でログインし**、`https://www.atlas-community.jp/ai/social` の「Threadsと連携する」を押して認可する

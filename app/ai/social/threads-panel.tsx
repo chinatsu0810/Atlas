@@ -61,9 +61,11 @@ function ReviewList({ label, items }: { label: string; items: string[] }) {
 export function ThreadsPanel({
   initialStatus,
   notice,
+  noticeDetail,
 }: {
   initialStatus: ThreadsStatus;
   notice: string | null;
+  noticeDetail: string | null;
 }) {
   const [status, setStatus] = useState<ThreadsStatus>(initialStatus);
   const [isRunning, setIsRunning] = useState(false);
@@ -197,6 +199,11 @@ export function ThreadsPanel({
           }`}
         >
           {noticeInfo.text}
+          {noticeInfo.tone === 'error' && noticeDetail && (
+            <span className="mt-1 block break-words text-xs text-red-700">
+              Metaからの理由：{noticeDetail}
+            </span>
+          )}
         </p>
       )}
 

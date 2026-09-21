@@ -13,9 +13,9 @@ import { ThreadsPanel } from './threads-panel';
 export default async function SocialDraftPage({
   searchParams,
 }: {
-  searchParams: Promise<{ threads?: string }>;
+  searchParams: Promise<{ threads?: string; detail?: string }>;
 }) {
-  const { threads: threadsNotice } = await searchParams;
+  const { threads: threadsNotice, detail: threadsNoticeDetail } = await searchParams;
   const user = await getUser();
 
   if (!user || !(await isAdmin(user.id))) {
@@ -77,7 +77,11 @@ export default async function SocialDraftPage({
       </p>
 
       <div className="mb-8">
-        <ThreadsPanel initialStatus={threadsStatus} notice={threadsNotice ?? null} />
+        <ThreadsPanel
+          initialStatus={threadsStatus}
+          notice={threadsNotice ?? null}
+          noticeDetail={threadsNoticeDetail ?? null}
+        />
       </div>
 
       <Suspense>
