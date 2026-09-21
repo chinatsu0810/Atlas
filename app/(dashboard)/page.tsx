@@ -245,7 +245,13 @@ className="relative left-1/2 h-[225px] w-[105vw] -translate-x-1/2 bg-contain bg-
     role="status"
     className="rounded-xl border border-[#F3D39A] bg-[#FFF8E8] px-4 py-3 text-center text-sm font-semibold text-[#8A5A12] shadow-sm"
   >
-    Atlasは現在改装中です。サイトはご覧いただけますが、一部機能をご利用いただけない場合があります。
+    <p>本サイトは2026年9月にオープンしました。</p>
+    <p>
+      現在は開発用サンプルデータを中心に掲載しており、これから皆さんの経験とともに育てていくコミュニティです。
+    </p>
+    <p className="mt-3"></p>
+    <p>未来の自分のために。そして、いつか同じ道を歩く誰かのために。</p>
+    <p>最初の経験を残してみませんか。</p>
   </div>
 </div>
 
