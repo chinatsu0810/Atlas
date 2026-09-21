@@ -261,12 +261,12 @@ className="relative left-1/2 h-[225px] w-[105vw] -translate-x-1/2 bg-contain bg-
             こんな経験を探していますか？
           </h2>
 
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            {categoryCards.map((card) => (
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+            {categoryCards.map((card, index) => (
               <Link
                 key={card.title}
                 href={card.href}
-                className={`${card.color} group rounded-xl border border-white p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-md`}
+                className={`${card.color} ${index >= 4 ? 'hidden sm:block' : ''} group rounded-xl border border-white p-3 shadow-sm transition hover:-translate-y-1 hover:shadow-md sm:p-4`}
               >
                 <div className="mb-3 text-3xl">{card.icon}</div>
 
@@ -275,12 +275,12 @@ className="relative left-1/2 h-[225px] w-[105vw] -translate-x-1/2 bg-contain bg-
                     <h3 className="whitespace-pre-line text-sm font-bold leading-6 text-[#174C73]">
                       {card.title}
                     </h3>
-                    <p className="mt-1 whitespace-pre-line text-xs leading-5 text-[#648198]">
+                    <p className="mt-1 whitespace-pre-line text-[11px] leading-5 text-[#648198] sm:text-xs">
                       {card.description}
                     </p>
                   </div>
 
-                  <ArrowRight className="mb-1 h-4 w-4 shrink-0 text-[#4E9BC5] transition group-hover:translate-x-1" />
+                  <ArrowRight className="mb-1 hidden h-4 w-4 shrink-0 text-[#4E9BC5] transition group-hover:translate-x-1 sm:block" />
                 </div>
               </Link>
             ))}
