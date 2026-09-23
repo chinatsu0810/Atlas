@@ -111,6 +111,13 @@ export default async function RootLayout({
       lang="ja"
       className={`bg-white text-black dark:bg-gray-950 dark:text-white ${manrope.className}`}
     >
+      <head>
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4018415742182473"
+          crossOrigin="anonymous"
+        ></script>
+      </head>
       <body className="min-h-[100dvh] bg-gray-50">
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-MQZ3XFHD3Y"
