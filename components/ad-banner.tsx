@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 
 type ImageAd = {
   kind: 'image';
@@ -84,11 +85,14 @@ const ADS: Ad[] = [
     pixelSrc: 'https://www14.a8.net/0.gif?a8mat=4BCHZO+9RV7AQ+2JMM+6A4FL',
   },
   {
-    kind: 'text',
-    id: '4BCHZO+9NP62A+5TBA+5YJRM',
-    href: 'https://px.a8.net/svt/ejp?a8mat=4BCHZO+9NP62A+5TBA+5YJRM',
-    label: '各国最低2回線使えるコスパ最強eSIM【ボイエ】',
-    pixelSrc: 'https://www14.a8.net/0.gif?a8mat=4BCHZO+9NP62A+5TBA+5YJRM',
+    kind: 'image',
+    id: '260923668584',
+    href: 'https://px.a8.net/svt/ejp?a8mat=4BCHZO+9NP62A+5TBA+5Z6WX',
+    imgSrc:
+      'https://www26.a8.net/svt/bgt?aid=260923668584&wid=001&eno=01&mid=s00000027127001004000&mc=1',
+    width: 120,
+    height: 60,
+    pixelSrc: 'https://www11.a8.net/0.gif?a8mat=4BCHZO+9NP62A+5TBA+5Z6WX',
   },
   {
     kind: 'image',
@@ -155,11 +159,12 @@ function pickAd(): Ad {
 }
 
 export function AdBanner() {
+  const pathname = usePathname();
   const [ad, setAd] = useState<Ad | null>(null);
 
   useEffect(() => {
     setAd(pickAd());
-  }, []);
+  }, [pathname]);
 
   if (!ad) {
     return null;

@@ -2,7 +2,8 @@ import './globals.css';
 import type { Metadata, Viewport } from 'next';
 import { Manrope } from 'next/font/google';
 import Link from 'next/link';
-import { ChevronDown, CircleUserRound, Globe } from 'lucide-react';
+import Image from 'next/image';
+import { ChevronDown, CircleUserRound } from 'lucide-react';
 import { getUser, getTeamForUser } from '@/lib/db/queries';
 import { getSession } from '@/lib/auth/session';
 import { SWRConfig } from 'swr';
@@ -60,7 +61,13 @@ async function Header() {
           className="flex shrink-0 items-center gap-2 text-[#17324A] transition-opacity hover:opacity-80"
           aria-label="Atlas ホームへ戻る"
         >
-          <Globe className="h-7 w-7 text-sky-600" />
+          <Image
+            src="/atlas-logo.png"
+            alt=""
+            width={28}
+            height={28}
+            className="h-7 w-7 shrink-0"
+          />
           <span className="text-xl font-bold tracking-tight">Atlas</span>
         </Link>
 

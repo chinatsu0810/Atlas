@@ -10,8 +10,9 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Loader2, Globe, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { updateAccount } from '@/app/(login)/actions';
 import { User } from '@/lib/db/schema';
 import useSWR from 'swr';
@@ -108,7 +109,13 @@ export default function GeneralPage() {
             className="inline-flex items-center transition-opacity hover:opacity-80"
             aria-label="Atlas ホームへ戻る"
           >
-            <Globe className="h-6 w-6 text-sky-600" />
+            <Image
+              src="/atlas-logo.png"
+              alt=""
+              width={24}
+              height={24}
+              className="h-6 w-6 shrink-0"
+            />
             <span className="ml-2 text-xl font-semibold tracking-tight text-gray-900">
               Atlas
             </span>
