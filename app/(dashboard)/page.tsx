@@ -409,7 +409,7 @@ export default async function DashboardPage() {
         <section className="mb-10">
           <SectionHeading
             icon={<MessageCircle className="h-5 w-5" />}
-            title="回答を待っている質問"
+            title="回答募集中の質問"
             description="経験したあなたにしか、答えられないことがあります。"
             href="/questions"
           />
