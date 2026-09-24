@@ -87,14 +87,14 @@ async function Header() {
             <>
               <Link
                 href="/sign-up"
-                className="hidden whitespace-nowrap rounded-full border border-[#1F5F5B] px-4 py-2 text-sm font-medium text-[#1F5F5B] transition hover:bg-[#E8F5F3] sm:block"
+                className="whitespace-nowrap rounded-full border border-[#1F5F5B] px-3 py-1.5 text-xs font-medium text-[#1F5F5B] transition hover:bg-[#E8F5F3] sm:px-4 sm:py-2 sm:text-sm"
               >
                 新規登録
               </Link>
 
               <Link
                 href="/sign-in"
-                className="whitespace-nowrap rounded-full bg-[#F97316] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#EA580C]"
+                className="whitespace-nowrap rounded-full bg-[#F97316] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#EA580C] sm:px-4 sm:py-2 sm:text-sm"
               >
                 ログイン
               </Link>

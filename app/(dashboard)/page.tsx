@@ -3,14 +3,24 @@ import type { ReactNode } from 'react';
 import {
   ArrowRight,
   CircleUserRound,
+  Info,
   MessageCircle,
+  PenLine,
   Search,
   Sparkles,
 } from 'lucide-react';
-import { and, desc, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull } from 'drizzle-orm';
 import { db } from '@/lib/db/drizzle';
-import { experiences, questions, users } from '@/lib/db/schema';
+import {
+  experiences,
+  experienceTags,
+  questions,
+  tags,
+  users,
+} from '@/lib/db/schema';
 import { displayAuthorName } from '@/lib/users/display';
+import { ServiceCards } from '@/components/home/ServiceCards';
+import { SearchKeywordInput } from '@/components/search-keyword-input';
 
 const popularSearchTags = [
   'インド',
@@ -96,6 +106,19 @@ const categoryCards = [
   },
 ];
 
+const conditionGroups = [
+  { title: '経験から探す', tags: experienceTypeTags },
+  { title: '国から探す', tags: countryTags },
+  { title: '家族構成から探す', tags: familyTags },
+];
+
+// 経験談カードでは「誰の経験か」が伝わるタグを優先して表示する
+const tagCategoryPriority: Record<string, number> = {
+  type: 0,
+  family: 1,
+  theme: 2,
+};
+
 function SectionHeading({
   icon,
   title,
@@ -108,14 +131,23 @@ function SectionHeading({
   href?: string;
 }) {
   return (
-    <div className="mb-4 flex items-center justify-between gap-4">
-      <div className="flex min-w-0 items-center gap-2">
-        <span className="text-[#1478B8]">{icon}</span>
-        <h2 className="shrink-0 text-base font-bold text-[#123B5D] md:text-lg">
-          {title}
-        </h2>
+    <div className="mb-4 flex items-start justify-between gap-4 md:items-center">
+      <div className="min-w-0">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="text-[#1478B8]">{icon}</span>
+          <h2 className="shrink-0 text-base font-bold text-[#123B5D] md:text-lg">
+            {title}
+          </h2>
+          {description && (
+            <p className="hidden truncate text-sm text-[#6B8498] md:block">
+              {description}
+            </p>
+          )}
+        </div>
+
+        {/* スマホでは横に並べると切れるため、見出しの下に折り返して表示する */}
         {description && (
-          <p className="hidden truncate text-sm text-[#6B8498] md:block">
+          <p className="mt-1 text-xs leading-5 text-[#6B8498] md:hidden">
             {description}
           </p>
         )}
@@ -123,7 +155,7 @@ function SectionHeading({
 
       <Link
         href={href}
-        className="flex shrink-0 items-center gap-1 text-sm text-[#1478B8] hover:text-[#0D5686]"
+        className="mt-0.5 flex shrink-0 items-center gap-1 text-sm text-[#1478B8] hover:text-[#0D5686] md:mt-0"
       >
         もっと見る
         <ArrowRight className="h-4 w-4" />
@@ -180,86 +212,107 @@ export default async function DashboardPage() {
     .orderBy(desc(experiences.createdAt))
     .limit(3);
 
+  const newExperienceTags =
+    newExperiences.length === 0
+      ? []
+      : await db
+          .select({
+            experienceId: experienceTags.experienceId,
+            name: tags.name,
+            category: tags.category,
+          })
+          .from(experienceTags)
+          .innerJoin(tags, eq(tags.id, experienceTags.tagId))
+          .where(
+            inArray(
+              experienceTags.experienceId,
+              newExperiences.map((experience) => experience.id),
+            ),
+          );
+
+  const getExperienceTagNames = (experienceId: number) =>
+    newExperienceTags
+      .filter((tag) => tag.experienceId === experienceId && tag.name !== 'その他')
+      .sort(
+        (a, b) =>
+          (tagCategoryPriority[a.category] ?? 9) -
+          (tagCategoryPriority[b.category] ?? 9),
+      )
+      .slice(0, 3)
+      .map((tag) => tag.name);
+
   return (
     <div className="min-h-screen bg-[#F8FBFD] text-[#123B5D]">
       <section className="relative">
-<div
-className="relative left-1/2 h-[225px] w-[105vw] -translate-x-1/2 bg-contain bg-center bg-no-repeat sm:h-[270px] md:h-[345px] lg:h-[460px]"
-  style={{
-    backgroundImage: "url('/atlas-hero.png.PNG')",
-  }}
-  aria-label="Atlasの紹介"
-/>
+        <h1 className="sr-only">
+          「実際どうだった？」を、経験した人に聞ける場所。Atlas
+        </h1>
 
- <div className="relative mx-auto -mt-5 w-[90%] max-w-[780px] md:-mt-8 md:w-[70%]">
-    <div className="rounded-2xl border border-[#C9DFEA] bg-white/95 p-2.5 shadow-[0_14px_36px_rgba(20,73,107,0.18)] backdrop-blur">
-      <form
-  action="/search"
-  method="get"
-  className="flex items-center gap-3 px-4 md:px-6"
->
-  <Search className="h-5 w-5 shrink-0 text-[#1478B8]" />
+        <div
+          className="relative left-1/2 h-[225px] w-[105vw] -translate-x-1/2 bg-contain bg-center bg-no-repeat sm:h-[270px] md:h-[345px] lg:h-[460px]"
+          style={{
+            backgroundImage: "url('/atlas-hero.png.PNG')",
+          }}
+          aria-hidden
+        />
 
-  <input
-    type="search"
-    name="q"
-    placeholder="どんな経験を探していますか？（国・都市・テーマなど）"
-    className="min-w-0 flex-1 bg-transparent py-3 text-sm text-[#123B5D] outline-none placeholder:text-[#8AA0B0] md:text-base"
-  />
+        <div className="relative mx-auto -mt-5 w-[90%] max-w-[780px] md:-mt-8 md:w-[70%]">
+          <div className="rounded-2xl border border-[#C9DFEA] bg-white/95 p-2.5 shadow-[0_14px_36px_rgba(20,73,107,0.18)] backdrop-blur">
+            <form
+              action="/search"
+              method="get"
+              className="flex items-center gap-3 px-4 md:px-6"
+            >
+              <Search className="h-5 w-5 shrink-0 text-[#1478B8]" />
 
-  <button
-    type="submit"
-    className="rounded-full bg-[#1478B8] px-7 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0D5686]"
-  >
-    検索
-  </button>
-</form>
+              <SearchKeywordInput
+                inputClassName="bg-transparent py-3 text-sm text-[#123B5D] outline-none md:text-base"
+                placeholderClassName="text-sm text-[#8AA0B0] md:text-base"
+              />
 
-      <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-[#EEF3F6] px-3 pt-3 md:px-5">
-        <span className="mr-1 text-xs font-semibold text-[#406783] md:text-sm">
-          よく探されているテーマ
-        </span>
+              <button
+                type="submit"
+                className="rounded-full bg-[#1478B8] px-7 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0D5686]"
+              >
+                検索
+              </button>
+            </form>
 
-        {popularSearchTags.map((tag) => (
-          <Link
-            key={tag}
-            href={`/search?q=${encodeURIComponent(tag)}`}
-            className="rounded-full border border-[#D8E7F0] bg-white px-3 py-1.5 text-xs text-[#35617E] transition hover:border-[#9EC6DF] hover:bg-[#F1F8FC] md:text-sm"
+            <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-[#EEF3F6] px-3 pt-3 md:px-5">
+              <span className="mr-1 text-xs font-semibold text-[#406783] md:text-sm">
+                よく探されているテーマ
+              </span>
+
+              {popularSearchTags.map((tag) => (
+                <Link
+                  key={tag}
+                  href={`/search?q=${encodeURIComponent(tag)}`}
+                  className="rounded-full border border-[#D8E7F0] bg-white px-3 py-1.5 text-xs text-[#35617E] transition hover:border-[#9EC6DF] hover:bg-[#F1F8FC] md:text-sm"
+                >
+                  {tag}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* スマホではヒーロー画像内の説明文が小さく読めないため、テキストで補う */}
+          <p className="mt-4 text-center text-xs leading-6 text-[#406783] sm:hidden">
+            海外赴任、帯同、移住、留学、旅行。
+            <br />
+            検索ではわからないリアルな経験談が集まっています。
+          </p>
+
+          <p
+            role="status"
+            className="mt-3 flex items-start justify-center gap-1.5 text-center text-[11px] leading-5 text-[#7F95A6] md:text-xs"
           >
-            {tag}
-          </Link>
-        ))}
-      </div>
-    </div>
-  </div>
-</section>
-
-
-
-
-
-
-
-<div className="mx-auto w-full max-w-[1120px] px-4 pt-4 md:px-6">
-  <div
-    role="status"
-    className="rounded-xl border border-[#F3D39A] bg-[#FFF8E8] px-4 py-3 text-center text-sm font-semibold text-[#8A5A12] shadow-sm"
-  >
-    <p>本サイトは2026年9月にオープンしました。</p>
-    <p>
-      現在は開発用サンプルデータを中心に掲載しており、これから皆さんの経験とともに育てていくコミュニティです。
-    </p>
-    <p className="mt-3"></p>
-    <p>未来の自分のために。そして、いつか同じ道を歩く誰かのために。</p>
-    <p>最初の経験を残してみませんか。</p>
-  </div>
-</div>
-
-
-
-
-
-
+            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <span>
+              2026年9月オープン。現在はサンプルの投稿を含めて掲載しています。
+            </span>
+          </p>
+        </div>
+      </section>
 
       <main className="mx-auto max-w-[1120px] px-4 pb-12 pt-8 md:px-6 md:pt-10">
         <section className="mb-10">
@@ -293,69 +346,73 @@ className="relative left-1/2 h-[225px] w-[105vw] -translate-x-1/2 bg-contain bg-
           </div>
         </section>
 
-       <section className="mb-10 grid gap-6 border-y border-[#DCEAF2] py-6 md:grid-cols-3 md:gap-8">
-          <div>
-            <h2 className="mb-3 text-sm font-bold text-[#174C73] md:text-base">
-              経験から探す
-            </h2>
+        <section className="mb-10">
+          <SectionHeading
+            icon={<Sparkles className="h-5 w-5" />}
+            title="新着の経験"
+            description="みんなのリアルな体験談が続々と投稿されています"
+            href="/experiences"
+          />
 
-            <div className="flex flex-wrap gap-2">
-              {experienceTypeTags.map((tag) => (
-                <Link
-                  key={tag}
-                  href={`/search?q=${encodeURIComponent(tag)}`}
-                  className="rounded-full border border-[#D8E7F0] bg-white px-3.5 py-1.5 text-xs text-[#35617E] shadow-sm hover:bg-[#F1F8FC] md:text-sm"
-                >
-                  {tag}
-                </Link>
-              ))}
+          {newExperiences.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-[#C9DDE9] bg-white py-10 text-center text-sm text-[#678096]">
+              まだ投稿された経験談はありません。
             </div>
-          </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-3">
+              {newExperiences.map((experience) => {
+                const tagNames = getExperienceTagNames(experience.id);
 
-<div className="border-t border-[#DCEAF2] pt-6 md:border-l md:border-t-0 md:pl-8 md:pt-0">
-  <h2 className="mb-3 text-sm font-bold text-[#174C73] md:text-base">
-    国から探す
-  </h2>
+                return (
+                  <Link
+                    key={experience.id}
+                    href={`/experiences/${experience.id}`}
+                    className="flex flex-col rounded-xl border border-[#E1EBF1] border-t-4 border-t-[#8CC5E4] bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+                  >
+                    <div className="flex flex-wrap gap-1.5">
+                      <span className="rounded-full bg-[#E8F6FC] px-2.5 py-1 text-xs text-[#1478B8]">
+                        {experience.country}
+                      </span>
 
-  <div className="flex flex-wrap gap-2">
-    {countryTags.map((tag) => (
-      <Link
-        key={tag}
-        href={`/search?q=${encodeURIComponent(tag)}`}
-        className="rounded-full border border-[#D8E7F0] bg-white px-3.5 py-1.5 text-xs text-[#35617E] shadow-sm hover:bg-[#F1F8FC] md:text-sm"
-      >
-        {tag}
-      </Link>
-    ))}
-  </div>
-</div>
+                      {tagNames.map((tagName) => (
+                        <span
+                          key={tagName}
+                          className="rounded-full bg-[#F1F5F8] px-2.5 py-1 text-xs text-[#557086]"
+                        >
+                          {tagName}
+                        </span>
+                      ))}
+                    </div>
 
-          <div className="border-t border-[#DCEAF2] pt-6 md:border-l md:border-t-0 md:pl-8 md:pt-0">
-            <h2 className="mb-3 text-sm font-bold text-[#174C73] md:text-base">
-              家族構成から探す
-            </h2>
+                    <h3 className="mt-3 line-clamp-2 text-sm font-bold leading-6 text-[#174C73]">
+                      {experience.title}
+                    </h3>
 
-            <div className="flex flex-wrap gap-2">
-              {familyTags.map((tag) => (
-                <Link
-                  key={tag}
-                  href={`/search?q=${encodeURIComponent(tag)}`}
-                  className="rounded-full border border-[#D8E7F0] bg-white px-3.5 py-1.5 text-xs text-[#35617E] shadow-sm hover:bg-[#F1F8FC] md:text-sm"
-                >
-                  {tag}
-                </Link>
-              ))}
+                    <p className="mt-2 line-clamp-3 flex-1 text-xs leading-5 text-[#6D8496]">
+                      {experience.content}
+                    </p>
+
+                    <CardMetaRow
+                      author={displayAuthorName(
+                        experience.authorName,
+                        experience.authorDeletedAt
+                      )}
+                      date={new Date(experience.createdAt).toLocaleDateString('ja-JP')}
+                    />
+                  </Link>
+                );
+              })}
             </div>
-          </div>
+          )}
         </section>
 
         <section className="mb-10">
-       <SectionHeading
-  icon={<MessageCircle className="h-5 w-5" />}
-  title="回答募集中の質問"
-  description="現在、回答を募集している質問です。あなたの経験が誰かのヒントになります。"
-  href="/questions"
-/>
+          <SectionHeading
+            icon={<MessageCircle className="h-5 w-5" />}
+            title="回答を待っている質問"
+            description="経験したあなたにしか、答えられないことがあります。"
+            href="/questions"
+          />
 
           {featuredQuestions.length === 0 ? (
             <div className="rounded-xl border border-dashed border-[#C9DDE9] bg-white py-10 text-center text-sm text-[#678096]">
@@ -381,8 +438,9 @@ className="relative left-1/2 h-[225px] w-[105vw] -translate-x-1/2 bg-contain bg-
                     {question.content}
                   </p>
 
-                  <div className="mt-4 text-xs text-[#8AA0B0]">
-                    回答募集中
+                  <div className="mt-4 flex items-center gap-1 text-xs font-semibold text-[#1478B8]">
+                    回答する
+                    <ArrowRight className="h-3.5 w-3.5" />
                   </div>
                 </Link>
               ))}
@@ -390,54 +448,72 @@ className="relative left-1/2 h-[225px] w-[105vw] -translate-x-1/2 bg-contain bg-
           )}
         </section>
 
-        <section>
-          <SectionHeading
-            icon={<Sparkles className="h-5 w-5" />}
-            title="新着の経験"
-            description="みんなのリアルな体験談が続々と投稿されています"
-            href="/experiences"
-          />
+        <section className="mb-10 rounded-2xl border border-[#C9DFEA] bg-gradient-to-br from-[#EAF6FF] to-[#F4FBF8] px-5 py-8 text-center md:px-10 md:py-10">
+          <p className="text-sm leading-7 text-[#406783] md:text-base">
+            未来の自分のために。そして、
+            <br className="sm:hidden" />
+            いつか同じ道を歩く誰かのために。
+          </p>
+          <h2 className="mt-2 text-lg font-bold leading-8 text-[#123B5D] md:text-xl">
+            あなたの「実際どうだった？」
+            <br className="sm:hidden" />
+            を残してみませんか
+          </h2>
 
-          {newExperiences.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-[#C9DDE9] bg-white py-10 text-center text-sm text-[#678096]">
-              まだ投稿された経験談はありません。
-            </div>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-3">
-              {newExperiences.map((experience) => (
-                <Link
-                  key={experience.id}
-                  href={`/experiences/${experience.id}`}
-                  className="block overflow-hidden rounded-xl border border-[#E1EBF1] bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md"
-                >
-                  <div className="h-24 bg-gradient-to-br from-[#8CC5E4] to-[#377DA4]" />
-
-                  <div className="p-4">
-                    <span className="rounded-full bg-[#E8F6FC] px-2.5 py-1 text-xs text-[#1478B8]">
-                      {experience.country}
-                    </span>
-
-                    <h3 className="mt-3 line-clamp-2 text-sm font-bold leading-6 text-[#174C73]">
-                      {experience.title}
-                    </h3>
-
-                    <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#6D8496]">
-                      {experience.content}
-                    </p>
-
-                    <CardMetaRow
-                      author={displayAuthorName(
-                        experience.authorName,
-                        experience.authorDeletedAt
-                      )}
-                      date={new Date(experience.createdAt).toLocaleDateString('ja-JP')}
-                    />
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
+          <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Link
+              href="/experiences/new"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#1478B8] px-7 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0D5686] sm:w-auto"
+            >
+              <PenLine className="h-4 w-4" />
+              経験談を書く
+            </Link>
+            <Link
+              href="/questions/new"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#9EC6DF] bg-white px-7 py-3 text-sm font-semibold text-[#1478B8] transition hover:bg-[#F1F8FC] sm:w-auto"
+            >
+              <MessageCircle className="h-4 w-4" />
+              質問する
+            </Link>
+          </div>
         </section>
+
+        <section className="mb-10 border-y border-[#DCEAF2] py-6">
+          <h2 className="mb-5 text-base font-bold text-[#123B5D] md:text-lg">
+            条件から探す
+          </h2>
+
+          <div className="grid gap-6 md:grid-cols-3 md:gap-8">
+            {conditionGroups.map((group, index) => (
+              <div
+                key={group.title}
+                className={
+                  index === 0
+                    ? ''
+                    : 'border-t border-[#DCEAF2] pt-6 md:border-l md:border-t-0 md:pl-8 md:pt-0'
+                }
+              >
+                <h3 className="mb-3 text-sm font-bold text-[#174C73]">
+                  {group.title}
+                </h3>
+
+                <div className="flex flex-wrap gap-2">
+                  {group.tags.map((tag) => (
+                    <Link
+                      key={tag}
+                      href={`/search?q=${encodeURIComponent(tag)}`}
+                      className="rounded-full border border-[#D8E7F0] bg-white px-3.5 py-1.5 text-xs text-[#35617E] shadow-sm hover:bg-[#F1F8FC] md:text-sm"
+                    >
+                      {tag}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <ServiceCards />
       </main>
     </div>
   );
