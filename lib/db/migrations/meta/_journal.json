@@ -134,6 +134,20 @@
       "when": 1789968592660,
       "tag": "0018_account_deletions",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1790388012539,
+      "tag": "0019_experience_reactions",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1790389115900,
+      "tag": "0020_question_answer_reactions",
+      "breakpoints": true
     }
   ]
 }

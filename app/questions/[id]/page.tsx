@@ -25,6 +25,12 @@ import { displayAuthorName } from '@/lib/users/display';
 import { AnswerForm } from './answer-form';
 import { DeleteAnswerButton } from './delete-answer-button';
 import { BackButton } from '@/components/back-button';
+import { Reactions } from '@/components/reactions';
+import {
+  getReactionSummaries,
+  getReactionSummary,
+} from '@/lib/reactions/service';
+import { getVisitorId } from '@/lib/reactions/visitor';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -136,6 +142,18 @@ export default async function QuestionPage({ params }: Props) {
     )
     .orderBy(asc(answers.createdAt));
 
+  const visitorId = await getVisitorId();
+
+  const [questionReactionSummary, answerReactionSummaries] =
+    await Promise.all([
+      getReactionSummary('question', questionId, visitorId),
+      getReactionSummaries(
+        'answer',
+        questionAnswers.map((answer) => answer.id),
+        visitorId
+      ),
+    ]);
+
   const session = await getSession();
 
   const admin = session
@@ -202,6 +220,15 @@ export default async function QuestionPage({ params }: Props) {
                 {new Date(question.createdAt).toLocaleDateString('ja-JP')}
               </span>
             </div>
+          </div>
+
+          {/* Reactions */}
+          <div className="mt-4 md:mt-5">
+            <Reactions
+              target="question"
+              targetId={question.id}
+              initialSummary={questionReactionSummary}
+            />
           </div>
 
           {/* Admin Actions */}
@@ -315,8 +342,18 @@ export default async function QuestionPage({ params }: Props) {
                     {answer.content}
                   </p>
 
-                  <div className="text-xs text-muted-foreground mt-4 md:mt-5">
-                    {new Date(answer.createdAt).toLocaleDateString('ja-JP')}
+                  <div className="mt-4 md:mt-5 flex flex-wrap items-center justify-between gap-3">
+                    {answerReactionSummaries.has(answer.id) && (
+                      <Reactions
+                        target="answer"
+                        targetId={answer.id}
+                        initialSummary={answerReactionSummaries.get(answer.id)!}
+                      />
+                    )}
+
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      {new Date(answer.createdAt).toLocaleDateString('ja-JP')}
+                    </span>
                   </div>
                 </article>
               ))}

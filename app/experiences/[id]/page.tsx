@@ -10,6 +10,9 @@ import { getSession } from '@/lib/auth/session';
 import { isAdmin } from '@/lib/auth/permissions';
 import { displayAuthorName } from '@/lib/users/display';
 import { BackButton } from '@/components/back-button';
+import { Reactions } from '@/components/reactions';
+import { getReactionSummary } from '@/lib/reactions/service';
+import { getVisitorId } from '@/lib/reactions/visitor';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -102,6 +105,12 @@ export default async function ExperiencePage({ params }: Props) {
     .innerJoin(tags, eq(experienceTags.tagId, tags.id))
     .where(eq(experienceTags.experienceId, experienceId));
 
+  const reactionSummary = await getReactionSummary(
+    'experience',
+    experienceId,
+    await getVisitorId()
+  );
+
   const session = await getSession();
 
   const admin = session
@@ -168,6 +177,15 @@ export default async function ExperiencePage({ params }: Props) {
                 {new Date(experience.createdAt).toLocaleDateString('ja-JP')}
               </span>
             </div>
+          </div>
+
+          {/* Reactions */}
+          <div className="mt-4 md:mt-5">
+            <Reactions
+              target="experience"
+              targetId={experience.id}
+              initialSummary={reactionSummary}
+            />
           </div>
 
           {/* Admin Actions */}

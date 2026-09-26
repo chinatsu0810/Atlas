@@ -9,6 +9,7 @@ import {
   uniqueIndex,
   index,
   jsonb,
+  uuid,
 } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 
@@ -478,6 +479,8 @@ export const questionsRelations = relations(
     answers: many(answers),
 
     questionTags: many(questionTags),
+
+    reactions: many(questionReactions),
   })
 );
 
@@ -522,7 +525,7 @@ export const experienceTagsRelations = relations(
 
 export const answersRelations = relations(
   answers,
-  ({ one }) => ({
+  ({ one, many }) => ({
     question: one(questions, {
       fields: [answers.questionId],
       references: [questions.id],
@@ -532,6 +535,8 @@ export const answersRelations = relations(
       fields: [answers.authorId],
       references: [users.id],
     }),
+
+    reactions: many(answerReactions),
   })
 );
 
@@ -639,8 +644,143 @@ export const experiencesRelations = relations(
     }),
 
     experienceTags: many(experienceTags),
+    reactions: many(experienceReactions),
   }),
 );
+
+// ============================================================
+// Experience Reactions
+// 経験談へのリアクション（👀 なるほど / 👍 参考になった / 🧳 わかる！）。
+// ログイン不要。visitor_id は初回リアクション時に発行する匿名ID（Cookie）。
+// 同じ visitor は同じ経験談に対して、各リアクションを1回ずつだけ押せる。
+// ============================================================
+
+export const experienceReactions = pgTable(
+  'experience_reactions',
+  {
+    id: serial('id').primaryKey(),
+
+    // 退会パージで経験談が物理削除されたら、リアクションも一緒に消す
+    experienceId: integer('experience_id')
+      .notNull()
+      .references(() => experiences.id, { onDelete: 'cascade' }),
+
+    visitorId: uuid('visitor_id').notNull(),
+
+    // ReactionType（lib/reactions/types.ts）: 'insight' | 'helpful' | 'same'
+    reactionType: varchar('reaction_type', { length: 20 }).notNull(),
+
+    createdAt: timestamp('created_at')
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    // 同一リアクションの重複防止（件数集計の experience_id 検索にも使われる）
+    experienceVisitorTypeUnique: uniqueIndex(
+      'experience_reactions_experience_visitor_type_unique'
+    ).on(table.experienceId, table.visitorId, table.reactionType),
+  })
+);
+
+export const experienceReactionsRelations = relations(
+  experienceReactions,
+  ({ one }) => ({
+    experience: one(experiences, {
+      fields: [experienceReactions.experienceId],
+      references: [experiences.id],
+    }),
+  })
+);
+
+export type ExperienceReaction = typeof experienceReactions.$inferSelect;
+export type NewExperienceReaction = typeof experienceReactions.$inferInsert;
+
+// ============================================================
+// Question Reactions
+// 質問へのリアクション（🙋 自分も聞きたい）。仕組みは experience_reactions と同じ。
+// ============================================================
+
+export const questionReactions = pgTable(
+  'question_reactions',
+  {
+    id: serial('id').primaryKey(),
+
+    questionId: integer('question_id')
+      .notNull()
+      .references(() => questions.id, { onDelete: 'cascade' }),
+
+    visitorId: uuid('visitor_id').notNull(),
+
+    // ReactionType（lib/reactions/types.ts）: 'want_to_know'
+    reactionType: varchar('reaction_type', { length: 20 }).notNull(),
+
+    createdAt: timestamp('created_at')
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    questionVisitorTypeUnique: uniqueIndex(
+      'question_reactions_question_visitor_type_unique'
+    ).on(table.questionId, table.visitorId, table.reactionType),
+  })
+);
+
+export const questionReactionsRelations = relations(
+  questionReactions,
+  ({ one }) => ({
+    question: one(questions, {
+      fields: [questionReactions.questionId],
+      references: [questions.id],
+    }),
+  })
+);
+
+export type QuestionReaction = typeof questionReactions.$inferSelect;
+export type NewQuestionReaction = typeof questionReactions.$inferInsert;
+
+// ============================================================
+// Answer Reactions
+// 回答へのリアクション（👀 なるほど / 👍 参考になった / 🧳 わかる！）。
+// 仕組みは experience_reactions と同じ。
+// ============================================================
+
+export const answerReactions = pgTable(
+  'answer_reactions',
+  {
+    id: serial('id').primaryKey(),
+
+    answerId: integer('answer_id')
+      .notNull()
+      .references(() => answers.id, { onDelete: 'cascade' }),
+
+    visitorId: uuid('visitor_id').notNull(),
+
+    // ReactionType（lib/reactions/types.ts）: 'insight' | 'helpful' | 'same'
+    reactionType: varchar('reaction_type', { length: 20 }).notNull(),
+
+    createdAt: timestamp('created_at')
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    answerVisitorTypeUnique: uniqueIndex(
+      'answer_reactions_answer_visitor_type_unique'
+    ).on(table.answerId, table.visitorId, table.reactionType),
+  })
+);
+
+export const answerReactionsRelations = relations(
+  answerReactions,
+  ({ one }) => ({
+    answer: one(answers, {
+      fields: [answerReactions.answerId],
+      references: [answers.id],
+    }),
+  })
+);
+
+export type AnswerReaction = typeof answerReactions.$inferSelect;
+export type NewAnswerReaction = typeof answerReactions.$inferInsert;
 
 export type Experience = typeof experiences.$inferSelect;
 export type NewExperience = typeof experiences.$inferInsert;
