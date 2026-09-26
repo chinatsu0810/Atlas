@@ -3,7 +3,7 @@
 import { randomBytes } from 'crypto';
 import { z } from 'zod';
 import { and, eq, gt, isNull } from 'drizzle-orm';
-import { Resend } from 'resend';
+import { getResend } from '@/lib/email/resend';
 
 import { db } from '@/lib/db/drizzle';
 import {
@@ -11,7 +11,6 @@ import {
   users,
 } from '@/lib/db/schema';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 type ResetState = {
   error?: string;
@@ -102,7 +101,7 @@ export async function requestPasswordReset(
     `${baseUrl}/reset-password?token=${token}`;
 
   try {
-    await resend.emails.send({
+    await getResend().emails.send({
       from: 'Atlas <contact@atlas-community.jp>',
       to: [user.email],
       subject: 'Atlas パスワードリセットのご案内',

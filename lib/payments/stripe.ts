@@ -7,8 +7,25 @@ import {
   updateTeamSubscription
 } from '@/lib/db/queries';
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-08-27.basil'
+let stripeClient: Stripe | null = null;
+
+function getStripe(): Stripe {
+  if (!stripeClient) {
+    const apiKey = process.env.STRIPE_SECRET_KEY;
+    if (!apiKey) {
+      throw new Error('STRIPE_SECRET_KEY is not set');
+    }
+    stripeClient = new Stripe(apiKey, {
+      apiVersion: '2025-08-27.basil'
+    });
+  }
+  return stripeClient;
+}
+
+// 実際に使うときに初めて作る。読み込んだだけで作ると、キーが無い環境
+// （Vercelのプレビューなど）で、ビルドのページ収集が失敗するため
+export const stripe = new Proxy({} as Stripe, {
+  get: (_target, property) => Reflect.get(getStripe(), property)
 });
 
 export async function createCheckoutSession({
@@ -147,6 +164,9 @@ export async function handleSubscriptionChange(
 }
 
 export async function getStripePrices() {
+  // キーが無い環境では空にする（料金ページは既定の表示になる）
+  if (!process.env.STRIPE_SECRET_KEY) return [];
+
   const prices = await stripe.prices.list({
     expand: ['data.product'],
     active: true,
@@ -165,6 +185,8 @@ export async function getStripePrices() {
 }
 
 export async function getStripeProducts() {
+  if (!process.env.STRIPE_SECRET_KEY) return [];
+
   const products = await stripe.products.list({
     active: true,
     expand: ['data.default_price']

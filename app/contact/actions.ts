@@ -3,7 +3,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { eq } from 'drizzle-orm';
-import { Resend } from 'resend';
+import { getResend } from '@/lib/email/resend';
 
 import { db } from '@/lib/db/drizzle';
 import {
@@ -13,7 +13,6 @@ import {
 import { getUser } from '@/lib/db/queries';
 import { isAdmin } from '@/lib/auth/permissions';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 export type ContactState = {
   success?: boolean;
@@ -47,7 +46,7 @@ export async function submitContact(
       message,
     });
 
-    await resend.emails.send({
+    await getResend().emails.send({
       from: 'Atlas <contact@atlas-community.jp>',
       to: ['contact@atlas-community.jp'],
       replyTo: email,

@@ -1,15 +1,13 @@
 import 'server-only';
 
 import { and, inArray, isNull } from 'drizzle-orm';
-import { Resend } from 'resend';
 
 import { db } from '@/lib/db/drizzle';
+import { getResend } from '@/lib/email/resend';
 import { users } from '@/lib/db/schema';
 
 // 「譲る」のメール通知。
 // 安全のため、メッセージの本文はメールに載せない（投稿タイトルとリンクだけ）。
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 const FROM = 'Atlas <contact@atlas-community.jp>';
 
@@ -50,7 +48,7 @@ export async function notifyUsers(userIds: number[], notice: Notice) {
 
   for (const email of emails) {
     try {
-      await resend.emails.send({
+      await getResend().emails.send({
         from: FROM,
         to: [email],
         subject: `【Atlas 譲る】${notice.subject}`,
@@ -85,7 +83,7 @@ export async function notifyAdminOfReport(params: {
   reason: string;
 }) {
   try {
-    await resend.emails.send({
+    await getResend().emails.send({
       from: FROM,
       to: ['contact@atlas-community.jp'],
       subject: `【Atlas 譲る 通報】${params.giveawayTitle}`,
