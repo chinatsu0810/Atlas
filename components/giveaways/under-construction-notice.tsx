@@ -1,38 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Dialog } from 'radix-ui';
 import { Construction, X } from 'lucide-react';
 
 // 「譲る」がまだ準備中であることを知らせる、ページにかぶせる大きなお知らせ。
-// 閉じたら、同じタブのあいだは表示しない（sessionStorage）。
+// app/giveaways/layout.tsx に置いているので、ほかのページから「譲る」に入るたびに表示する。
+// 「譲る」の中でページを移る間はレイアウトが残るため、閉じたあとは再表示しない。
 // 正式に公開するときは、app/giveaways/layout.tsx からこの部品を外す。
-
-const DISMISSED_KEY = 'atlas:giveaways:under-construction-dismissed';
-
 export function GiveawaysUnderConstructionNotice() {
-  const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    try {
-      if (window.sessionStorage.getItem(DISMISSED_KEY) === '1') return;
-    } catch {
-      // 読めない環境では、毎回表示する
-    }
-    setOpen(true);
-  }, []);
-
-  function close() {
-    setOpen(false);
-    try {
-      window.sessionStorage.setItem(DISMISSED_KEY, '1');
-    } catch {
-      // 保存できなくても、次のページでまた表示されるだけ
-    }
-  }
+  const [open, setOpen] = useState(true);
 
   return (
-    <Dialog.Root open={open} onOpenChange={(value) => (value ? setOpen(true) : close())}>
+    <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-[60] bg-[#0B2236]/35 backdrop-blur-[1px]" />
         <Dialog.Content className="fixed inset-x-4 top-4 z-[61] mx-auto flex min-h-[min(560px,calc(100dvh-32px))] max-w-3xl flex-col items-center justify-center rounded-3xl border-4 border-dashed border-[#F5B041] bg-[#FFFBF2]/95 px-6 py-10 text-center shadow-[0_24px_80px_rgba(11,34,54,0.35)] outline-none md:inset-x-8 md:top-8 md:px-12">
@@ -70,7 +50,7 @@ export function GiveawaysUnderConstructionNotice() {
 
           <button
             type="button"
-            onClick={close}
+            onClick={() => setOpen(false)}
             className="mt-8 rounded-full bg-[#1478B8] px-8 py-3.5 text-base font-bold text-white shadow-sm transition hover:bg-[#0D5686]"
           >
             わかった、見てみる
