@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
-import { isNull } from 'drizzle-orm';
+import { and, isNull, eq } from 'drizzle-orm';
 import { db } from '@/lib/db/drizzle';
-import { experiences, questions } from '@/lib/db/schema';
+import { experiences, giveaways, questions } from '@/lib/db/schema';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,6 +21,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })
     .from(experiences)
     .where(isNull(experiences.deletedAt));
+
+  const openGiveaways = await db
+    .select({
+      id: giveaways.id,
+      updatedAt: giveaways.updatedAt,
+    })
+    .from(giveaways)
+    .where(and(eq(giveaways.status, 'open'), isNull(giveaways.deletedAt)));
 
   return [
     {

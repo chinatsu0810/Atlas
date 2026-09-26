@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { LucideIcon } from 'lucide-react';
-import { ChevronDown, PenLine, Search } from 'lucide-react';
+import { ChevronDown, Gift, PenLine, Search } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,7 +39,7 @@ const navGroups: NavGroup[] = [
   },
 ];
 
-const comingSoonItems = ['譲る', 'つながる', 'AI検索', '便利リンク集'];
+const comingSoonItems = ['つながる', 'AI検索', '便利リンク集'];
 
 function getActiveGroup(pathname: string): NavGroup['key'] | null {
   if (pathname === '/experiences/new' || pathname === '/questions/new') {
@@ -106,6 +106,31 @@ function NavGroupMenu({
   );
 }
 
+function GiveawaysLink({ compact }: { compact?: boolean }) {
+  const pathname = usePathname();
+  const active =
+    pathname === '/giveaways' || pathname.startsWith('/giveaways/');
+
+  const className = compact
+    ? `flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-4 py-2 text-xs font-medium transition ${
+        active
+          ? 'bg-[#1478B8] font-semibold text-white'
+          : 'text-[#53616B] hover:bg-[#F1F6F5]'
+      }`
+    : `flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-2.5 text-sm font-medium transition ${
+        active
+          ? 'bg-[#EAF4FB] font-semibold text-[#1478B8]'
+          : 'text-[#53616B] hover:bg-[#F1F6F5] hover:text-[#1478B8]'
+      }`;
+
+  return (
+    <Link href="/giveaways" className={className}>
+      <Gift className={compact ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
+      譲る
+    </Link>
+  );
+}
+
 function ComingSoonLabel() {
   return (
     <span className="ml-2 shrink-0 whitespace-nowrap rounded-full bg-[#EEF2F5] px-2 py-0.5 text-[10px] font-semibold tracking-wide text-[#7F95A6]">
@@ -127,6 +152,8 @@ export function HeaderNavDesktop() {
           active={group.key === activeGroup}
         />
       ))}
+
+      <GiveawaysLink />
 
       <span className="mx-2 h-5 w-px shrink-0 bg-[#E5EAEA]" aria-hidden />
 
@@ -160,6 +187,8 @@ export function HeaderNavMobile() {
           compact
         />
       ))}
+
+      <GiveawaysLink compact />
 
       <span className="mx-1 h-4 w-px shrink-0 bg-[#E5EAEA]" aria-hidden />
 

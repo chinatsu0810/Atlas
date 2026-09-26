@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { hash } from 'bcryptjs';
-import { and, eq, isNull, ne, or, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, ne, or, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db/drizzle';
 import {
@@ -9,6 +9,7 @@ import {
   answers,
   contacts,
   experiences,
+  giveaways,
   invitations,
   passwordResetTokens,
   questions,
@@ -279,6 +280,44 @@ export async function deleteUserInTransaction(
       .where(
         and(eq(experiences.authorId, userId), isNull(experiences.deletedAt))
       );
+  }
+
+  // 7b. 「譲る」。進行中の取引を終わらせる（どちらのモードでも）
+  //   - 本人の投稿: 募集中・予定者決定は取り下げ、受け渡し済みは完了にする
+  //   - 本人が予定者の投稿: 予定者決定は募集中に戻し、受け渡し済みは完了にする
+  //   完全削除では、本人の投稿を非表示にする（30日後にパージ）
+  await tx
+    .update(giveaways)
+    .set({ status: 'withdrawn', closedAt: now, updatedAt: now })
+    .where(
+      and(
+        eq(giveaways.authorId, userId),
+        inArray(giveaways.status, ['open', 'reserved'])
+      )
+    );
+
+  await tx
+    .update(giveaways)
+    .set({ status: 'open', recipientId: null, updatedAt: now })
+    .where(
+      and(eq(giveaways.recipientId, userId), eq(giveaways.status, 'reserved'))
+    );
+
+  await tx
+    .update(giveaways)
+    .set({ status: 'completed', closedAt: now, updatedAt: now })
+    .where(
+      and(
+        or(eq(giveaways.authorId, userId), eq(giveaways.recipientId, userId)),
+        eq(giveaways.status, 'handed_over')
+      )
+    );
+
+  if (mode === 'full') {
+    await tx
+      .update(giveaways)
+      .set({ deletedAt: now })
+      .where(and(eq(giveaways.authorId, userId), isNull(giveaways.deletedAt)));
   }
 
   // 8. ユーザーを墓標にする。パスワードは、誰も知らないランダムな値のハッシュにする

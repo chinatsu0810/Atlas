@@ -63,6 +63,11 @@ Atlasのユーザー削除（本人退会・運営による削除）の設計。
 | management_meetings.created_by | NOT NULL | NO ACTION |
 | threads_connections.connected_by | NOT NULL | NO ACTION |
 | threads_kpi_reports.created_by | NOT NULL | NO ACTION |
+| giveaways.author_id | NOT NULL | NO ACTION |
+| giveaways.recipient_id | 可 | NO ACTION |
+| giveaway_threads.applicant_id | NOT NULL | NO ACTION |
+| giveaway_messages.sender_id | 可 | NO ACTION |
+| giveaway_reports.reporter_id | NOT NULL | NO ACTION |
 
 間接的に関係するテーブル: `question_tags` / `experience_tags`（コンテンツの子、CASCADEなし）、`meeting_messages`（`management_meetings` からCASCADE）、`teams`（個人チームの名前が `${email}'s Team` でメールを含む）。
 
@@ -84,6 +89,10 @@ Atlasのユーザー削除（本人退会・運営による削除）の設計。
 | invitations | 本人が送った招待をDELETE。本人のメール宛ての招待もDELETE | pending を `cancelled` にする。承諾済みは残す |
 | contacts | `name` と `email` を匿名化。本文は30日後に削除 | 同左 |
 | contact_status_history | contacts と一緒に30日後に削除 | 同左 |
+| giveaways（本人の投稿） | 募集中・予定者決定は取り下げ、受け渡し済みは完了にする。`deletedAt` を設定 → 30日後にパージ（写真・スレッド・メッセージ・通報は CASCADE。Blob の写真ファイルもパージ後に削除） | 取引の終了だけ行い、投稿は残す |
+| giveaways（本人が予定者） | 予定者決定は募集中に戻し、受け渡し済みは完了にする | 同左 |
+| giveaway_threads（本人が希望者） | 30日後にパージ（メッセージは CASCADE） | 残す |
+| giveaway_reports（本人の通報） | 30日後にパージ | 残す |
 | social_workflows / management_meetings / threads_connections / threads_kpi_reports | **触らない**（会社の運営データ）。墓標を参照したまま残す | 同左 |
 
 ### 墓標化の中身
@@ -226,6 +235,8 @@ CREATE INDEX "account_deletions_pending_idx"
 | ログインセッション | 無効（`getUser` が `deletedAt` を見る） | — | — |
 | 質問・回答・経験談（B） | 非表示 | 物理削除 | — |
 | 質問・回答・経験談（A） | 残す | 残す | 残す（名義は「退会したユーザー」） |
+| 「譲る」の投稿・写真・やりとり（B） | 非表示・取引は終了 | 物理削除 | — |
+| 「譲る」のコメント・メッセージ（退会していない会員） | — | — | 完了・取り下げ・期限切れから1年で物理削除（日次ジョブ。[lib/retention/giveaways.ts](../lib/retention/giveaways.ts)） |
 | お問い合わせの氏名・メール | 消す | — | — |
 | お問い合わせの本文・対応履歴（退会した会員） | 残す | 物理削除 | — |
 | お問い合わせの本文・対応履歴（非会員・退会していない会員） | — | — | 対応完了から1年（未完了は最終更新から2年）で物理削除 |

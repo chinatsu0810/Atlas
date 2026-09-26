@@ -5,6 +5,8 @@ import {
   MessageCircle,
   MessagesSquare,
   Sparkles,
+  Gift,
+  Flag,
   Mail,
   Building2,
   Users,
@@ -15,6 +17,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { signOut } from '@/app/(login)/actions';
 import { getUser } from '@/lib/db/queries';
 import { isAdmin } from '@/lib/auth/permissions';
+import { getUnreadTotal } from '@/lib/giveaways/queries';
+import { countOpenGiveawayReports } from '@/lib/giveaways/admin';
 
 const menuItems = [
   {
@@ -47,11 +51,19 @@ const menuItems = [
     title: '自分の経験',
     description: '投稿した経験談を確認できます。',
   },
+  {
+    href: '/account/giveaways',
+    icon: Gift,
+    title: '譲る',
+    description: '自分の投稿と、コメントした投稿のやりとりを確認できます。',
+  },
 ];
 
 export default async function AccountPage() {
   const user = await getUser();
   const admin = user ? await isAdmin(user.id) : false;
+  const giveawayUnread = user ? await getUnreadTotal(user.id) : 0;
+  const openGiveawayReports = admin ? await countOpenGiveawayReports() : 0;
 
   return (
     <section className="flex-1">
@@ -98,6 +110,12 @@ export default async function AccountPage() {
                       </p>
                     </div>
 
+                    {item.href === '/account/giveaways' && giveawayUnread > 0 && (
+                      <span className="shrink-0 rounded-full bg-[#D14343] px-2 py-0.5 text-xs font-bold text-white">
+                        未読 {giveawayUnread}
+                      </span>
+                    )}
+
                     {/* Arrow */}
                     <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground md:h-5 md:w-5" />
 
@@ -136,6 +154,39 @@ export default async function AccountPage() {
                         受け付けたお問い合わせを確認できます。
                       </p>
                     </div>
+
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground md:h-5 md:w-5" />
+
+                  </CardContent>
+                </Card>
+              </Link>
+
+              <Link
+                href="/account/giveaway-reports"
+                className="block"
+              >
+                <Card className="cursor-pointer transition hover:bg-muted/50">
+                  <CardContent className="flex items-center gap-3 p-4 md:gap-4 md:p-5">
+
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-100 md:h-10 md:w-10">
+                      <Flag className="h-4 w-4 text-orange-500 md:h-5 md:w-5" />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <h2 className="text-sm font-bold md:text-base">
+                        「譲る」の通報
+                      </h2>
+
+                      <p className="mt-0.5 text-xs text-muted-foreground md:text-sm">
+                        通報された投稿・メッセージを確認し、非表示・削除できます。
+                      </p>
+                    </div>
+
+                    {openGiveawayReports > 0 && (
+                      <span className="shrink-0 rounded-full bg-[#D14343] px-2 py-0.5 text-xs font-bold text-white">
+                        未対応 {openGiveawayReports}
+                      </span>
+                    )}
 
                     <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground md:h-5 md:w-5" />
 

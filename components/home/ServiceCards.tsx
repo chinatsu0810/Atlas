@@ -34,6 +34,15 @@ const activeServices: {
       { label: '質問する', href: '/questions/new' },
     ],
   },
+  {
+    icon: Gift,
+    title: '譲る',
+    description: '帰国・引越し時の不用品を、次に来る人へ',
+    links: [
+      { label: '譲ってもらう', href: '/giveaways' },
+      { label: '使い方を見る', href: '/giveaways/guide' },
+    ],
+  },
 ];
 
 const comingSoonServices: {
@@ -41,11 +50,6 @@ const comingSoonServices: {
   title: string;
   description: string;
 }[] = [
-  {
-    icon: Gift,
-    title: '譲る',
-    description: '帰国・引越し時の不用品を、次に来る人へ',
-  },
   {
     icon: UsersRound,
     title: 'つながる',

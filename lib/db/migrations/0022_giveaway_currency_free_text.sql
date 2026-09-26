@@ -1,0 +1,1 @@
+ALTER TABLE "giveaways" ALTER COLUMN "currency" SET DATA TYPE varchar(20);

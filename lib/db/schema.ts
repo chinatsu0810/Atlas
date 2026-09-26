@@ -10,6 +10,7 @@ import {
   index,
   jsonb,
   uuid,
+  date,
 } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 
@@ -1101,3 +1102,191 @@ export const accountDeletions = pgTable(
 
 export type AccountDeletionRow = typeof accountDeletions.$inferSelect;
 export type NewAccountDeletionRow = typeof accountDeletions.$inferInsert;
+
+// ============================================================
+// Giveaways（譲る）
+// 帰国・引越しの不用品を、次の人へ譲るための掲示板。
+// 運営は場の提供のみで、代金のやり取りと受け渡しは当事者同士で行う。
+//
+// 状態の遷移（lib/giveaways/status.ts）:
+//   open（募集中）→ reserved（予定者決定）→ handed_over（受け渡し済み）→ completed（完了）
+//   reserved → open（予定のキャンセル）
+//   open / reserved → withdrawn（取り下げ）
+//   open → expired（期限切れ。再掲載できる）
+// ============================================================
+
+export const giveaways = pgTable(
+  'giveaways',
+  {
+    id: serial('id').primaryKey(),
+
+    authorId: integer('author_id')
+      .notNull()
+      .references(() => users.id),
+
+    title: varchar('title', { length: 100 }).notNull(),
+
+    description: text('description').notNull(),
+
+    // lib/giveaways/constants.ts の GIVEAWAY_CATEGORIES
+    category: varchar('category', { length: 20 }).notNull(),
+
+    country: varchar('country', { length: 100 }).notNull(),
+
+    city: varchar('city', { length: 100 }).notNull(),
+
+    // 受け渡しエリア（「〇〇駅周辺」程度。住所は書かない）
+    area: varchar('area', { length: 100 }),
+
+    // NULL なら無料。表示のみで、決済はしない
+    priceAmount: integer('price_amount'),
+
+    // 通貨。ISO 4217（USD など）か、自由記載（「現地通貨」など）。無料なら NULL
+    currency: varchar('currency', { length: 20 }),
+
+    // 受け渡し可能期限（例: 帰国日）。設定されていれば、この日まで募集する
+    availableUntil: date('available_until'),
+
+    status: varchar('status', { length: 20 }).notNull().default('open'),
+
+    // 受け渡し予定者（reserved 以降）
+    recipientId: integer('recipient_id').references(() => users.id),
+
+    // 募集の期限。受け渡し可能期限があればその日の終わり、なければ投稿から30日。
+    // 過ぎたら日次ジョブで expired にする
+    expiresAt: timestamp('expires_at').notNull(),
+
+    handedOverAt: timestamp('handed_over_at'),
+
+    // completed / withdrawn / expired になった日時。メッセージ削除（1年後）の基準
+    closedAt: timestamp('closed_at'),
+
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+
+    // 運営による非表示、または退会による非表示
+    deletedAt: timestamp('deleted_at'),
+  },
+  (table) => ({
+    statusIdx: index('giveaways_status_idx').on(table.status, table.createdAt),
+    authorIdx: index('giveaways_author_idx').on(table.authorId),
+  })
+);
+
+export const giveawayImages = pgTable(
+  'giveaway_images',
+  {
+    id: serial('id').primaryKey(),
+
+    giveawayId: integer('giveaway_id')
+      .notNull()
+      .references(() => giveaways.id, { onDelete: 'cascade' }),
+
+    // Vercel Blob の公開URL
+    url: text('url').notNull(),
+
+    // 表示順（0から）
+    position: integer('position').notNull().default(0),
+
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    giveawayIdx: index('giveaway_images_giveaway_idx').on(table.giveawayId),
+  })
+);
+
+// 投稿者と希望者の1対1スレッド。予定者に決まると、そのまま取引ページになる
+export const giveawayThreads = pgTable(
+  'giveaway_threads',
+  {
+    id: serial('id').primaryKey(),
+
+    giveawayId: integer('giveaway_id')
+      .notNull()
+      .references(() => giveaways.id, { onDelete: 'cascade' }),
+
+    applicantId: integer('applicant_id')
+      .notNull()
+      .references(() => users.id),
+
+    // 最後にメッセージが投稿された日時（一覧の並び順用）
+    lastMessageAt: timestamp('last_message_at').notNull().defaultNow(),
+
+    ownerLastReadAt: timestamp('owner_last_read_at'),
+
+    applicantLastReadAt: timestamp('applicant_last_read_at'),
+
+    // 新着メッセージのメールを最後に送った日時（15分に1通までにするため）
+    ownerNotifiedAt: timestamp('owner_notified_at'),
+
+    applicantNotifiedAt: timestamp('applicant_notified_at'),
+
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    giveawayApplicantUnique: uniqueIndex(
+      'giveaway_threads_giveaway_applicant_unique'
+    ).on(table.giveawayId, table.applicantId),
+    applicantIdx: index('giveaway_threads_applicant_idx').on(table.applicantId),
+  })
+);
+
+export const giveawayMessages = pgTable(
+  'giveaway_messages',
+  {
+    id: serial('id').primaryKey(),
+
+    threadId: integer('thread_id')
+      .notNull()
+      .references(() => giveawayThreads.id, { onDelete: 'cascade' }),
+
+    // 送った人。system メッセージでは操作した人（日次ジョブによる自動完了では NULL）
+    senderId: integer('sender_id').references(() => users.id),
+
+    // 'user'（利用者のメッセージ）| 'system'（状態の変化のお知らせ）
+    kind: varchar('kind', { length: 10 }).notNull().default('user'),
+
+    body: text('body').notNull(),
+
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+
+    // 運営が削除した日時。利用者には本文を見せず「運営が削除しました」と表示する（本文は運営の確認用に残す）
+    deletedAt: timestamp('deleted_at'),
+  },
+  (table) => ({
+    threadIdx: index('giveaway_messages_thread_idx').on(
+      table.threadId,
+      table.createdAt
+    ),
+  })
+);
+
+export const giveawayReports = pgTable('giveaway_reports', {
+  id: serial('id').primaryKey(),
+
+  giveawayId: integer('giveaway_id')
+    .notNull()
+    .references(() => giveaways.id, { onDelete: 'cascade' }),
+
+  // メッセージの通報なら、そのメッセージ
+  messageId: integer('message_id').references(() => giveawayMessages.id, {
+    onDelete: 'set null',
+  }),
+
+  reporterId: integer('reporter_id')
+    .notNull()
+    .references(() => users.id),
+
+  reason: text('reason').notNull(),
+
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+
+  // 運営が対応済みにした日時
+  resolvedAt: timestamp('resolved_at'),
+});
+
+export type Giveaway = typeof giveaways.$inferSelect;
+export type GiveawayImage = typeof giveawayImages.$inferSelect;
+export type GiveawayThread = typeof giveawayThreads.$inferSelect;
+export type GiveawayMessage = typeof giveawayMessages.$inferSelect;

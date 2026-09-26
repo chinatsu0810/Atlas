@@ -8,7 +8,7 @@ import { BulletList, LegalSection as Section } from '@/components/legal-section'
 // 公開前のチェックリストは、docs/account-deletion.md の「利用規約の公開前チェック」を参照。
 
 const ENACTED_ON = '2026年9月21日';
-const UPDATED_ON = '2026年9月21日';
+const UPDATED_ON = '2026年9月26日';
 
 export const metadata: Metadata = {
   title: '利用規約｜Atlas',
@@ -42,6 +42,7 @@ export default function TermsPage() {
           <p>
             当サービスは、世界のさまざまな場所について、実際に訪れたり暮らしたりした人の経験や知識を、
             質問・回答・経験談の形で共有するコミュニティです。
+            また、海外に住む方同士が、不要になった物を譲り合うための掲示板（以下「譲る」）を提供します。
             運営者（以下「運営」）は、当サービスを運営します。
           </p>
 
@@ -75,10 +76,16 @@ export default function TermsPage() {
             <li>法令や、公序良俗に反する行為</li>
             <li>他の方の権利（プライバシー、名誉、肖像、著作権など）を侵害する行為</li>
             <li>他の方への誹謗中傷、差別、脅迫、嫌がらせ</li>
-            <li>本名、勤務先、住所、連絡先など、ご自身や他の方を特定できる情報の投稿</li>
+            <li>
+              本名、勤務先、住所、連絡先など、ご自身や他の方を特定できる情報の投稿
+              （「譲る」の取引ページで、受け渡しに必要な範囲で相手に伝える場合を除きます）
+            </li>
             <li>事実と異なる内容を、事実であるかのように投稿する行為</li>
             <li>他の方や、団体になりすます行為</li>
-            <li>営利を目的とした宣伝、勧誘、スパム、当サービスと無関係なリンクの投稿</li>
+            <li>
+              営利を目的とした宣伝、勧誘、スパム、当サービスと無関係なリンクの投稿
+              （「譲る」での個人間の有償の譲渡は除きます。事業として継続的に販売することは禁止します）
+            </li>
             <li>他の方の投稿を、無断で転載する行為</li>
             <li>不正アクセス、サーバーに過度な負担をかける行為、自動的な情報の収集など、当サービスの運営を妨げる行為</li>
             <li>反社会的勢力への協力や関与</li>
@@ -110,7 +117,48 @@ export default function TermsPage() {
           </BulletList>
         </Section>
 
-        <Section article number={5} title="運営の対応">
+        <Section article number={5} title="「譲る」の利用">
+          <BulletList>
+            <li>
+              運営は、「譲る」で物を譲りたい方と欲しい方が出会う場を提供するだけで、譲渡や売買の契約の当事者にはなりません。
+              代金の支払い、品物の受け渡し、品物の状態や品質について、運営は関与せず、運営に故意または重大な過失がある場合を除いて、責任を負いません。
+            </li>
+            <li>
+              取引は、当事者同士の責任で行ってください。取引に関するトラブルは、当事者の間で解決してください。
+            </li>
+            <li>
+              「譲る」は、個人が生活の中で不要になった物を譲るためのものです。事業者による出品や、事業として継続的に販売することはできません。
+            </li>
+            <li>
+              次の物は、出品できません。
+              <BulletList>
+                <li>
+                  <Link
+                    href="/giveaways/guide#prohibited"
+                    className="text-blue-600 underline underline-offset-2 hover:text-blue-800"
+                  >
+                    「譲る」の使い方
+                  </Link>
+                  に掲載している禁止品（違法薬物、医薬品、酒類、たばこ、武器、生き物、偽造品、金券、本人確認書類など）
+                </li>
+                <li>取引が行われる国・地域の法令で、譲渡や販売が禁止または制限されている物</li>
+                <li>その他、運営が不適切と判断する物</li>
+              </BulletList>
+            </li>
+            <li>
+              取引が行われる国・地域の法令（販売や輸出入の規制、税など）は、当事者の責任で守ってください。
+            </li>
+            <li>
+              希望者のコメントと、取引ページのメッセージは、投稿者とその希望者の2人だけが閲覧できます。
+              ただし、通報があった場合や、本規約に違反するおそれがある場合には、その調査に必要な範囲で、運営が内容を確認することがあります。
+            </li>
+            <li>
+              投稿の募集は、受け渡し可能期限を設定した場合はその日まで、設定しない場合は30日で終了します。運営は、本規約に違反する投稿を非表示にしたり、コメント・メッセージを削除したりすることがあります。この対応は、事前に通知することなく行います。
+            </li>
+          </BulletList>
+        </Section>
+
+        <Section article number={6} title="運営の対応">
           <p>
             運営は、次の場合に、事前に通知することなく、投稿の削除や非表示、アカウントの利用の停止や削除などの対応をとることがあります。
           </p>
@@ -131,7 +179,7 @@ export default function TermsPage() {
           </p>
         </Section>
 
-        <Section article number={6} title="投稿の削除とアカウントの削除">
+        <Section article number={7} title="投稿の削除とアカウントの削除">
           <BulletList>
             <li>
               ご自身の投稿の削除をご希望の場合は、お問い合わせフォームからご連絡ください。運営が確認のうえ、削除します。
@@ -143,7 +191,7 @@ export default function TermsPage() {
           </BulletList>
         </Section>
 
-        <Section article number={7} title="サービスの変更・中断・終了">
+        <Section article number={8} title="サービスの変更・中断・終了">
           <p>
             運営は、必要と判断した場合、ユーザーへの事前の通知なく、当サービスの内容を変更し、
             または、当サービスの全部もしくは一部を、中断または終了することがあります。
@@ -151,7 +199,7 @@ export default function TermsPage() {
           </p>
         </Section>
 
-        <Section article number={8} title="免責事項">
+        <Section article number={9} title="免責事項">
           <BulletList>
             <li>
               当サービスに投稿された内容は、投稿したユーザー個人の経験や意見です。
@@ -178,7 +226,7 @@ export default function TermsPage() {
           </BulletList>
         </Section>
 
-        <Section article number={9} title="個人情報の取り扱い">
+        <Section article number={10} title="個人情報の取り扱い">
           <p>
             ユーザーの情報の取り扱いは、
             <Link
@@ -191,14 +239,14 @@ export default function TermsPage() {
           </p>
         </Section>
 
-        <Section article number={10} title="当サービスの権利">
+        <Section article number={11} title="当サービスの権利">
           <p>
             当サービスの名称、ロゴ、デザイン、プログラムなどに関する権利は、運営または、権利を持つ方に帰属します。
             ユーザーが投稿した内容を除き、これらを、運営の許可なく、複製、転載、改変することはできません。
           </p>
         </Section>
 
-        <Section article number={11} title="本規約の変更">
+        <Section article number={12} title="本規約の変更">
           <p>
             運営は、必要に応じて、本規約を変更することがあります。
             変更した場合は、このページに掲載し、最終更新日を改めます。
@@ -207,14 +255,14 @@ export default function TermsPage() {
           </p>
         </Section>
 
-        <Section article number={12} title="準拠法と裁判所">
+        <Section article number={13} title="準拠法と裁判所">
           <p>
             本規約は、日本法に従って解釈します。
             当サービスに関して、運営とユーザーとの間で紛争が生じた場合は、運営の所在地を管轄する裁判所を、第一審の専属的な合意管轄裁判所とします。
           </p>
         </Section>
 
-        <Section article number={13} title="お問い合わせ">
+        <Section article number={14} title="お問い合わせ">
           <p>本規約についてのお問い合わせは、下記からお願いします。</p>
 
           <Link

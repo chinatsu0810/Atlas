@@ -9,6 +9,7 @@ import { getSession } from '@/lib/auth/session';
 import { SWRConfig } from 'swr';
 import { Footer } from '@/components/footer';
 import { HeaderNavDesktop, HeaderNavMobile } from '@/components/header-nav';
+import { getUnreadTotal } from '@/lib/giveaways/queries';
 import Script from 'next/script';
 
 export const metadata: Metadata = {
@@ -53,6 +54,11 @@ const manrope = Manrope({ subsets: ['latin'] });
 async function Header() {
   const session = await getSession();
 
+  // 「譲る」の未読メッセージ。取得に失敗しても、ヘッダーは表示する
+  const giveawayUnread = session
+    ? await getUnreadTotal(session.user.id).catch(() => 0)
+    : 0;
+
   return (
     <header className="sticky top-0 z-50 border-b border-[#E5EAEA] bg-white/95 backdrop-blur">
       <div className="mx-auto flex h-[72px] max-w-[1440px] items-center gap-6 px-5 md:px-8">
@@ -81,7 +87,15 @@ async function Header() {
             >
               マイページ
               <ChevronDown className="h-4 w-4" />
-              <CircleUserRound className="h-6 w-6 text-[#1478B8]" />
+              <span className="relative">
+                <CircleUserRound className="h-6 w-6 text-[#1478B8]" />
+                {giveawayUnread > 0 && (
+                  <span
+                    className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-[#D14343]"
+                    aria-label={`未読メッセージ ${giveawayUnread}件`}
+                  />
+                )}
+              </span>
             </Link>
           ) : (
             <>

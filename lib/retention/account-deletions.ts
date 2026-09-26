@@ -1,3 +1,4 @@
+import { del } from '@vercel/blob';
 import { and, asc, eq, inArray, isNull, lte, or } from 'drizzle-orm';
 
 import { db } from '@/lib/db/drizzle';
@@ -8,6 +9,10 @@ import {
   contacts,
   experienceTags,
   experiences,
+  giveawayImages,
+  giveawayReports,
+  giveawayThreads,
+  giveaways,
   questionTags,
   questions,
 } from '@/lib/db/schema';
@@ -18,6 +23,8 @@ import type { Tx } from '@/lib/account/delete-user';
 //
 // - 完全削除（mode 'full'）: 質問・回答・経験談と、そのタグ。
 //   本人の質問に付いた他人の回答も削除する（answers.question_id のFKを満たすため）。
+//   「譲る」の投稿（写真・スレッド・メッセージ・通報ごと）、本人が希望者のスレッド、本人の通報。
+//   写真のファイル（Vercel Blob）は、トランザクションの完了後に削除する。
 // - どちらのモードでも: お問い合わせ（本文・対応履歴）。
 // users の行（墓標）、activity_logs、teams、account_deletions の記録は残す。
 
@@ -27,6 +34,9 @@ export type PurgeCounts = {
   questions: number;
   experienceTags: number;
   experiences: number;
+  giveawayReports: number;
+  giveawayThreads: number;
+  giveaways: number;
   contactStatusHistory: number;
   contacts: number;
 };
@@ -38,6 +48,9 @@ function emptyCounts(): PurgeCounts {
     questions: 0,
     experienceTags: 0,
     experiences: 0,
+    giveawayReports: 0,
+    giveawayThreads: 0,
+    giveaways: 0,
     contactStatusHistory: 0,
     contacts: 0,
   };
@@ -127,6 +140,28 @@ export async function purgeAccountDeletionInTransaction(
         .where(eq(experiences.authorId, userId))
         .returning({ id: experiences.id })
     ).length;
+
+    // 「譲る」。本人の通報 → 本人が希望者のスレッド → 本人の投稿（子は CASCADE で消える）
+    counts.giveawayReports = (
+      await tx
+        .delete(giveawayReports)
+        .where(eq(giveawayReports.reporterId, userId))
+        .returning({ id: giveawayReports.id })
+    ).length;
+
+    counts.giveawayThreads = (
+      await tx
+        .delete(giveawayThreads)
+        .where(eq(giveawayThreads.applicantId, userId))
+        .returning({ id: giveawayThreads.id })
+    ).length;
+
+    counts.giveaways = (
+      await tx
+        .delete(giveaways)
+        .where(eq(giveaways.authorId, userId))
+        .returning({ id: giveaways.id })
+    ).length;
   }
 
   const userContactIds = tx
@@ -154,6 +189,23 @@ export async function purgeAccountDeletionInTransaction(
     .where(eq(accountDeletions.id, deletion.id));
 
   return counts;
+}
+
+/** 完全削除のユーザーの「譲る」の写真のURL（パージ後に Vercel Blob から消すため） */
+async function giveawayImageUrlsForDeletion(deletionId: number) {
+  const rows = await db
+    .select({ url: giveawayImages.url })
+    .from(giveawayImages)
+    .innerJoin(giveaways, eq(giveawayImages.giveawayId, giveaways.id))
+    .innerJoin(accountDeletions, eq(giveaways.authorId, accountDeletions.userId))
+    .where(
+      and(
+        eq(accountDeletions.id, deletionId),
+        eq(accountDeletions.mode, 'full')
+      )
+    );
+
+  return rows.map((row) => row.url);
 }
 
 export type PurgeDueAccountDeletionsResult = {
@@ -197,12 +249,20 @@ export async function purgeDueAccountDeletions({
 
   for (const { id } of due) {
     try {
+      const imageUrls = await giveawayImageUrlsForDeletion(id);
+
       const counts = await db.transaction((tx) =>
         purgeAccountDeletionInTransaction(tx, id, now)
       );
 
       if (!counts) {
         continue;
+      }
+
+      if (imageUrls.length > 0) {
+        await del(imageUrls).catch((error) =>
+          console.error(`Failed to delete giveaway images of deletion ${id}:`, error)
+        );
       }
 
       result.purged += 1;

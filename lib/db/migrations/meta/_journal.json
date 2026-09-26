@@ -148,6 +148,27 @@
       "when": 1790389115900,
       "tag": "0020_question_answer_reactions",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1790424949449,
+      "tag": "0021_giveaways",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1790428183373,
+      "tag": "0022_giveaway_currency_free_text",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1790429136568,
+      "tag": "0023_giveaway_moderation",
+      "breakpoints": true
     }
   ]
 }
