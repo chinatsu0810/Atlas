@@ -1,6 +1,17 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { and, desc, eq, ilike, inArray, isNull, or } from 'drizzle-orm';
+import {
+  and,
+  desc,
+  eq,
+  ilike,
+  inArray,
+  isNull,
+  or,
+  sql,
+  type AnyColumn,
+  type SQL,
+} from 'drizzle-orm';
 import { MessageCircle, Search, Sparkles } from 'lucide-react';
 import { SearchKeywordInput } from '@/components/search-keyword-input';
 import { db } from '@/lib/db/drizzle';
@@ -65,20 +76,31 @@ function createSearchUrl(query: string, type: ResultType) {
   return search ? `/search?${search}` : '/search';
 }
 
+const KATAKANA = 'ァ-ヺー';
+
+// カタカナで始まるキーワードは、直前がカタカナの位置ではマッチさせない
+// （「インド」で「マインド」「ウインドウ」がヒットしないようにする）
+function matchKeyword(column: AnyColumn, word: string): SQL {
+  if (!new RegExp(`^[${KATAKANA}]`).test(word)) {
+    return ilike(column, `%${word}%`);
+  }
+
+  const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return sql`${column} ~* ${`(^|[^${KATAKANA}])${escaped}`}`;
+}
+
 async function searchExperiences(keywords: string[]): Promise<SearchResult[]> {
   const keywordConditions = keywords.map((word) => {
-    const pattern = `%${word}%`;
-
     const matchingExperienceIds = db
       .select({ experienceId: experienceTags.experienceId })
       .from(experienceTags)
       .innerJoin(tags, eq(tags.id, experienceTags.tagId))
-      .where(ilike(tags.name, pattern));
+      .where(matchKeyword(tags.name, word));
 
     return or(
-      ilike(experiences.title, pattern),
-      ilike(experiences.content, pattern),
-      ilike(experiences.country, pattern),
+      matchKeyword(experiences.title, word),
+      matchKeyword(experiences.content, word),
+      matchKeyword(experiences.country, word),
       inArray(experiences.id, matchingExperienceIds),
     );
   });
@@ -118,18 +140,16 @@ async function searchExperiences(keywords: string[]): Promise<SearchResult[]> {
 
 async function searchQuestions(keywords: string[]): Promise<SearchResult[]> {
   const keywordConditions = keywords.map((word) => {
-    const pattern = `%${word}%`;
-
     const matchingQuestionIds = db
       .select({ questionId: questionTags.questionId })
       .from(questionTags)
       .innerJoin(tags, eq(tags.id, questionTags.tagId))
-      .where(ilike(tags.name, pattern));
+      .where(matchKeyword(tags.name, word));
 
     return or(
-      ilike(questions.title, pattern),
-      ilike(questions.content, pattern),
-      ilike(questions.country, pattern),
+      matchKeyword(questions.title, word),
+      matchKeyword(questions.content, word),
+      matchKeyword(questions.country, word),
       inArray(questions.id, matchingQuestionIds),
     );
   });
