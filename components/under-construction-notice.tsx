@@ -4,11 +4,16 @@ import { useState } from 'react';
 import { Dialog } from 'radix-ui';
 import { Construction, X } from 'lucide-react';
 
-// 「譲る」がまだ準備中であることを知らせる、ページにかぶせる大きなお知らせ。
-// app/giveaways/layout.tsx に置いているので、ほかのページから「譲る」に入るたびに表示する。
-// 「譲る」の中でページを移る間はレイアウトが残るため、閉じたあとは再表示しない。
-// 正式に公開するときは、app/giveaways/layout.tsx からこの部品を外す。
-export function GiveawaysUnderConstructionNotice() {
+// 機能がまだ準備中であることを知らせる、ページにかぶせる大きなお知らせ。
+// 使うときは、その機能の layout.tsx に置く（例: app/xxx/layout.tsx で {children} のあとに置く）。
+// そうすると、ほかのページからその機能に入るたびに表示し、機能の中でページを移る間は再表示しない。
+// 正式に公開するときは、layout.tsx からこの部品を外す。
+export function UnderConstructionNotice({
+  children,
+}: {
+  // 機能の説明と、いまの状態。段落ごとに <p> で渡す
+  children: React.ReactNode;
+}) {
   const [open, setOpen] = useState(true);
 
   return (
@@ -37,14 +42,7 @@ export function GiveawaysUnderConstructionNotice() {
 
           <Dialog.Description asChild>
             <div className="mt-5 max-w-xl space-y-2 text-sm leading-7 text-[#4F6B80] md:text-base">
-              <p>
-                「譲る」は、帰国・引越しの不用品を次に来る人へ譲るための機能です。
-                <br className="hidden md:block" />
-                いま、みなさんに使っていただけるよう準備を進めています。
-              </p>
-              <p>
-                投稿やコメントはお試しいただけますが、画面や動きが変わることがあります。
-              </p>
+              {children}
             </div>
           </Dialog.Description>
 
