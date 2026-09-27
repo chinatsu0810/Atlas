@@ -199,9 +199,14 @@ export default function GiveawayGuidePage() {
               </div>
             ))}
           </dl>
-          <p className="mt-3 text-xs text-[#8AA0B0]">
-            食品は、未開封・賞味期限内のものに限ります。
-          </p>
+          <ul className="mt-3 space-y-1 text-xs leading-5 text-[#8AA0B0]">
+            <li>・食品は、未開封・賞味期限内で、常温で保存できる市販品に限ります。</li>
+            <li>・化粧品・衛生用品は、未開封のものに限ります。</li>
+            <li>・ナイフ、現金、クレジットカード、ポイント、ビザ・在留資格・就労許可など、上に載っていない物や権利も、この一覧の趣旨に当たる物は扱えません。</li>
+            <li>・会社や学校から支給された物、レンタル・リース品など、自分の物ではない物は譲れません。</li>
+            <li>・国境を越えて発送する取引や、輸出入に許可が必要な物は扱えません。</li>
+            <li>・このほか、法令や公序良俗に反する物、トラブルになるおそれが高い物は、運営の判断で削除することがあります。</li>
+          </ul>
         </section>
 
         <div className="mt-10 flex flex-wrap justify-center gap-3">
