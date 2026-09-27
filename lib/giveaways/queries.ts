@@ -40,7 +40,8 @@ export type GiveawayListFilters = {
   city: string;
   category: string;
   price: '' | 'free' | 'paid';
-  // true なら、予定者決定以降のものも含める
+  // true なら、受け渡し済み・完了のものも含める。
+  // 予定者決定はキャンセルで募集中に戻りうるため、常に含める
   includeClosed: boolean;
 };
 
@@ -55,7 +56,7 @@ export async function listGiveaways(
   conditions.push(
     filters.includeClosed
       ? inArray(giveaways.status, ['open', 'reserved', 'handed_over', 'completed'])
-      : eq(giveaways.status, 'open')
+      : inArray(giveaways.status, ['open', 'reserved'])
   );
 
   if (filters.countries.length > 0) {
