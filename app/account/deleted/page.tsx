@@ -2,7 +2,14 @@
 import { CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-export default function AccountDeletedPage() {
+export default async function AccountDeletedPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ kept?: string }>;
+}) {
+  // 投稿を残して退会した場合は ?kept=1
+  const kept = (await searchParams).kept === '1';
+
   return (
     <main className="min-h-screen flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-md text-center">
@@ -13,8 +20,9 @@ export default function AccountDeletedPage() {
         </h1>
 
         <p className="mt-3 text-sm leading-6 text-muted-foreground">
-          アカウント情報を削除しました。投稿した質問・回答・経験談は
-          非表示にし、30日後に完全に削除します。
+          {kept
+            ? 'アカウント情報を削除しました。投稿した質問・回答・経験談は、「退会したユーザー」の名義で残します。「譲る」の投稿は非表示にし、30日後に完全に削除します。'
+            : 'アカウント情報を削除しました。投稿した質問・回答・経験談と「譲る」の投稿は非表示にし、30日後に完全に削除します。'}
         </p>
 
         <p className="mt-3 text-sm leading-6 text-muted-foreground">

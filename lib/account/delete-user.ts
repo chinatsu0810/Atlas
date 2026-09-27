@@ -24,7 +24,9 @@ import { hashEmailForBlocklist } from './email-hash';
 //
 // - users の行は物理削除せず、個人情報を消した「墓標」にする。
 // - mode 'full'（完全削除）は、コンテンツを非表示にし、PURGE_DAYS 日後にパージする（パージは別ジョブ）。
-// - mode 'keep_content'（コンテンツを残す）は運営のみ。コンテンツは残す。
+// - mode 'keep_content'（コンテンツを残す）は、質問・回答・経験談を「退会したユーザー」名義で残す。
+//   本人の退会でも、運営の削除でも選べる。
+// - 「譲る」の投稿とやりとりは、どちらのモードでも非表示にし、30日後にパージする。
 
 export const PURGE_DAYS = 30;
 
@@ -89,12 +91,6 @@ export async function deleteUserInTransaction(
   }
 
   if (actor.type === 'self') {
-    if (mode !== 'full') {
-      return fail(
-        'invalid_request',
-        '本人による削除は、完全削除のみ行えます。'
-      );
-    }
     if (params.blockReRegistration) {
       return fail(
         'invalid_request',
@@ -285,7 +281,7 @@ export async function deleteUserInTransaction(
   // 7b. 「譲る」。進行中の取引を終わらせる（どちらのモードでも）
   //   - 本人の投稿: 募集中・予定者決定は取り下げ、受け渡し済みは完了にする
   //   - 本人が予定者の投稿: 予定者決定は募集中に戻し、受け渡し済みは完了にする
-  //   完全削除では、本人の投稿を非表示にする（30日後にパージ）
+  //   本人の投稿は、どちらのモードでも非表示にする（30日後にパージ）。取引のためのデータで、残す意味がないため
   await tx
     .update(giveaways)
     .set({ status: 'withdrawn', closedAt: now, updatedAt: now })
@@ -313,12 +309,10 @@ export async function deleteUserInTransaction(
       )
     );
 
-  if (mode === 'full') {
-    await tx
-      .update(giveaways)
-      .set({ deletedAt: now })
-      .where(and(eq(giveaways.authorId, userId), isNull(giveaways.deletedAt)));
-  }
+  await tx
+    .update(giveaways)
+    .set({ deletedAt: now })
+    .where(and(eq(giveaways.authorId, userId), isNull(giveaways.deletedAt)));
 
   // 8. ユーザーを墓標にする。パスワードは、誰も知らないランダムな値のハッシュにする
   const unusablePasswordHash = await hash(randomBytes(32).toString('hex'), 10);

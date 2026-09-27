@@ -428,12 +428,14 @@ export const updatePassword = validatedActionWithUser(
 
 const deleteAccountSchema = z.object({
   password: z.string().min(8).max(100),
+  // 'full'（投稿を削除する）| 'keep_content'（質問・回答・経験談を残す）
+  mode: z.enum(['full', 'keep_content']).default('full'),
 });
 
 export const deleteAccount = validatedActionWithUser(
   deleteAccountSchema,
   async (data, _, user) => {
-    const { password } = data;
+    const { password, mode } = data;
 
     const isPasswordValid = await comparePasswords(
       password,
@@ -448,12 +450,13 @@ export const deleteAccount = validatedActionWithUser(
       };
     }
 
-    // 個人情報の消去、コンテンツの非表示、30日後のパージ予約をまとめて行う。
+    // 個人情報の消去、コンテンツの非表示（投稿を残す場合は「譲る」だけ）、
+    // 30日後のパージ予約をまとめて行う。
     // 仕様は docs/account-deletion.md。削除の記録は account_deletions に残るので、
     // activity_logs には残さない（残すと、誰の操作か分かる状態が復活するため）
     const result = await deleteUser({
       userId: user.id,
-      mode: 'full',
+      mode,
       actor: { type: 'self' },
     });
 
@@ -466,7 +469,7 @@ export const deleteAccount = validatedActionWithUser(
 
     (await cookies()).delete('session');
 
-    redirect('/account/deleted');
+    redirect(mode === 'keep_content' ? '/account/deleted?kept=1' : '/account/deleted');
   }
 );
 

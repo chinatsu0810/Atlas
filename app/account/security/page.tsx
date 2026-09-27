@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -33,6 +33,10 @@ export default function SecurityPage() {
 
   const [deleteState, deleteFormAction, isDeletePending] =
     useActionState<ActionState, FormData>(deleteAccount, {});
+
+  // 退会時の投稿の扱い。'full'（削除する）| 'keep_content'（残す）
+  const [deleteMode, setDeleteMode] = useState<'full' | 'keep_content'>('full');
+  const keepContent = deleteMode === 'keep_content';
 
   return (
     <main className="min-h-screen px-4 py-6 md:px-6 md:py-10">
@@ -162,13 +166,32 @@ export default function SecurityPage() {
                     お名前・メールアドレスなどのアカウント情報は、
                     削除と同時に消去されます。
                   </li>
+                  {keepContent ? (
+                    <>
+                      <li>
+                        あなたが投稿した質問・回答・経験談は、
+                        「退会したユーザー」の名義で残ります。ニックネームは表示されません。
+                      </li>
+                      <li>
+                        残した投稿は、アカウントがなくなるため、あとから削除を依頼できません。
+                        本文にご自身が分かる情報がある場合は、「削除する」を選んでください。
+                      </li>
+                    </>
+                  ) : (
+                    <>
+                      <li>
+                        あなたが投稿した質問・回答・経験談は、削除と同時に
+                        非表示になり、30日後に完全に削除されます。
+                      </li>
+                      <li>
+                        あなたの質問に他の方が回答している場合、
+                        その回答も一緒に見えなくなります。
+                      </li>
+                    </>
+                  )}
                   <li>
-                    あなたが投稿した質問・回答・経験談は、削除と同時に
-                    非表示になり、30日後に完全に削除されます。
-                  </li>
-                  <li>
-                    あなたの質問に他の方が回答している場合、
-                    その回答も一緒に見えなくなります。
+                    「譲る」の投稿は、削除と同時に取り下げて非表示になり、進行中の取引も終了します。
+                    30日後に、写真ややりとりとあわせて完全に削除されます。
                   </li>
                   <li>
                     お問い合わせの内容は、30日後に完全に削除されます。
@@ -193,6 +216,58 @@ export default function SecurityPage() {
                 className="space-y-5"
                 action={deleteFormAction}
               >
+                <fieldset>
+                  <legend className="mb-2 text-sm font-medium">
+                    投稿した質問・回答・経験談
+                  </legend>
+
+                  <div className="space-y-2">
+                    {(
+                      [
+                        {
+                          value: 'full',
+                          title: '削除する',
+                          description: '削除と同時に非表示にし、30日後に完全に削除します。',
+                        },
+                        {
+                          value: 'keep_content',
+                          title: '残す',
+                          description:
+                            '「退会したユーザー」の名義で残し、ほかの方が引き続き読めるようにします。',
+                        },
+                      ] as const
+                    ).map((option) => (
+                      <label
+                        key={option.value}
+                        className={`flex cursor-pointer gap-3 rounded-lg border p-3 text-sm transition ${
+                          deleteMode === option.value
+                            ? 'border-red-300 bg-red-50/60'
+                            : 'hover:bg-muted/50'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="mode"
+                          value={option.value}
+                          checked={deleteMode === option.value}
+                          onChange={() => setDeleteMode(option.value)}
+                          className="mt-1"
+                        />
+                        <span>
+                          <span className="font-medium">{option.title}</span>
+                          <span className="mt-0.5 block text-muted-foreground">
+                            {option.description}
+                          </span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    「譲る」の投稿とやりとりは、どちらを選んでも削除されます。
+                  </p>
+                </fieldset>
+
                 <div>
                   <Label htmlFor="deletePassword" className="mb-2">
                     現在のパスワード
@@ -225,7 +300,9 @@ export default function SecurityPage() {
                   disabled={isDeletePending}
                   onClick={(event) => {
                     const confirmed = window.confirm(
-                      'アカウントを削除しますか？\n\nこの操作は取り消せません。投稿した質問・回答・経験談は、削除と同時に非表示になり、30日後に完全に削除されます。'
+                      keepContent
+                        ? 'アカウントを削除しますか？\n\nこの操作は取り消せません。投稿した質問・回答・経験談は「退会したユーザー」の名義で残り、あとから削除を依頼できません。「譲る」の投稿は削除されます。'
+                        : 'アカウントを削除しますか？\n\nこの操作は取り消せません。投稿した質問・回答・経験談と「譲る」の投稿は、削除と同時に非表示になり、30日後に完全に削除されます。'
                     );
 
                     if (!confirmed) {

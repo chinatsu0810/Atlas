@@ -17,6 +17,11 @@ import {
   contacts,
   experienceTags,
   experiences,
+  giveawayImages,
+  giveawayMessages,
+  giveawayReports,
+  giveawayThreads,
+  giveaways,
   invitations,
   passwordResetTokens,
   questionTags,
@@ -360,7 +365,6 @@ async function main() {
 
     await expectFail('不正なID', { userId: 0, mode: 'full', actor: { type: 'self' } }, 'invalid_request');
     await expectFail('存在しないユーザー', { userId: 2_147_000_000, mode: 'full', actor: { type: 'self' } }, 'not_found');
-    await expectFail('本人によるコンテンツを残す削除', { userId: victim.id, mode: 'keep_content', actor: { type: 'self' } }, 'invalid_request');
     await expectFail('本人による再登録拒否', { userId: victim.id, mode: 'full', actor: { type: 'self' }, blockReRegistration: true }, 'invalid_request');
     await expectFail('運営削除で理由なし', { userId: victim.id, mode: 'full', actor: { type: 'admin', id: owner.id } }, 'invalid_request');
     await expectFail('運営削除で理由が空白のみ', { userId: victim.id, mode: 'full', actor: { type: 'admin', id: owner.id }, reason: '   ' }, 'invalid_request');
@@ -517,6 +521,60 @@ async function main() {
     check('お問い合わせが消えている', (await tx.select().from(contacts).where(eq(contacts.userId, s.target.id))).length === 0);
     const [d] = await tx.select().from(accountDeletions).where(eq(accountDeletions.id, deletionId));
     check('purged_at が入っている', d.purgedAt !== null);
+  });
+
+  await inRollback('本人退会（投稿を残す）と「譲る」', async (tx) => {
+    const owner = await createUser(tx, 'owner', 'owner');
+    const s = await seedTarget(tx, owner.id);
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+    // 本人の投稿（他人が予定者）と、他人の投稿（本人が予定者）
+    const base = { description: 'd', category: 'other', country: 'JP', city: 'c', expiresAt };
+    const [own] = await tx
+      .insert(giveaways)
+      .values({ ...base, title: 'own', authorId: s.target.id, status: 'reserved', recipientId: s.other.id })
+      .returning();
+    const [others] = await tx
+      .insert(giveaways)
+      .values({ ...base, title: 'others', authorId: s.other.id, status: 'reserved', recipientId: s.target.id })
+      .returning();
+    await tx.insert(giveawayImages).values({ giveawayId: own.id, url: 'https://example.invalid/giveaways/x.jpg' });
+    const [ownThread] = await tx.insert(giveawayThreads).values({ giveawayId: own.id, applicantId: s.other.id }).returning();
+    const [targetThread] = await tx.insert(giveawayThreads).values({ giveawayId: others.id, applicantId: s.target.id }).returning();
+    await tx.insert(giveawayMessages).values([
+      { threadId: ownThread.id, senderId: s.other.id, body: 'm1' },
+      { threadId: targetThread.id, senderId: s.target.id, body: 'm2' },
+    ]);
+    await tx.insert(giveawayReports).values({ giveawayId: others.id, reporterId: s.target.id, reason: 'r' });
+
+    const deletionId = await deleteThenMakeDue(tx, { userId: s.target.id, mode: 'keep_content', actor: { type: 'self' } });
+
+    const [d] = await tx.select().from(accountDeletions).where(eq(accountDeletions.id, deletionId));
+    check('記録: 本人・コンテンツを残す', d.mode === 'keep_content' && d.actorType === 'self', d);
+    const [q] = await tx.select().from(questions).where(eq(questions.id, s.question.id));
+    const [e] = await tx.select().from(experiences).where(eq(experiences.id, s.experience.id));
+    check('本人が残すを選んだ: 質問・経験談が残っている', q.deletedAt === null && e.deletedAt === null);
+
+    const [ownAfter] = await tx.select().from(giveaways).where(eq(giveaways.id, own.id));
+    check('譲る: 本人の投稿は取り下げ・非表示', ownAfter.status === 'withdrawn' && ownAfter.deletedAt !== null, ownAfter);
+    const [othersAfter] = await tx.select().from(giveaways).where(eq(giveaways.id, others.id));
+    check('譲る: 本人が予定者の投稿は募集中に戻る', othersAfter.status === 'open' && othersAfter.recipientId === null && othersAfter.deletedAt === null, othersAfter);
+
+    const counts = await purgeAccountDeletionInTransaction(tx, deletionId, new Date());
+    check('パージが実行される', counts !== null);
+    if (!counts) return;
+
+    check('パージ: 質問・経験談は消えない', counts.questions === 0 && counts.experiences === 0, counts);
+    check('パージ: 譲るの投稿・スレッド・通報が消える', counts.giveaways === 1 && counts.giveawayThreads === 1 && counts.giveawayReports === 1, counts);
+    check('パージ: 本人の投稿が消えている', (await tx.select().from(giveaways).where(eq(giveaways.id, own.id))).length === 0);
+    check('パージ: 本人の投稿の写真・スレッドも消えている',
+      (await tx.select().from(giveawayImages).where(eq(giveawayImages.giveawayId, own.id))).length === 0 &&
+      (await tx.select().from(giveawayThreads).where(eq(giveawayThreads.id, ownThread.id))).length === 0);
+    check('パージ: 本人が希望者のスレッドとメッセージが消えている',
+      (await tx.select().from(giveawayThreads).where(eq(giveawayThreads.id, targetThread.id))).length === 0 &&
+      (await tx.select().from(giveawayMessages).where(eq(giveawayMessages.threadId, targetThread.id))).length === 0);
+    check('パージ: 他人の投稿は残っている', (await tx.select().from(giveaways).where(eq(giveaways.id, others.id))).length === 1);
+    check('パージ: 質問が残っている', (await tx.select().from(questions).where(eq(questions.id, s.question.id))).length === 1);
   });
 
   await inRollback('パージ（期限前は何もしない）', async (tx) => {
