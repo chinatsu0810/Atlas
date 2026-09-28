@@ -19,7 +19,7 @@
 
 ## 本番への反映
 
-マイグレーション `0024_gather_events.sql` を本番DBに適用する。`npm run db:migrate` は使えない（[account-deletion.md](account-deletion.md) の「注意」）。SQLを直接実行する。
+マイグレーション `0024_gather_events.sql` は**本番DBに適用済み**（2026-09-28。SQLを1トランザクションで直接実行。22列・インデックス2つを確認済みで、行は0件）。`npm run db:migrate` は使えない（[account-deletion.md](account-deletion.md) の「注意」）。SQLを直接実行する。
 
 テーブルがない間も、公開ページは「まだ掲載中のイベントはありません」と表示し、運営画面はテーブルがない旨を表示する。
 
