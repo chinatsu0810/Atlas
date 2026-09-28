@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState } from 'react';
+import { startTransition, useActionState } from 'react';
 import { Loader2 } from 'lucide-react';
 
 import type { GatherEvent } from '@/lib/db/schema';
@@ -35,7 +35,18 @@ export function GatherEventForm({
   const published = Boolean(event?.publishedAt);
 
   return (
-    <form action={formAction} className="mt-6 space-y-6">
+    <form
+      // action={formAction} にすると、React は送信のたびに（エラーで戻ってきたときも）
+      // フォームを最初の状態に戻してしまい、選んだラジオボタンやチェックが外れる。
+      // そのため送信は自分で行い、入力した内容を残す
+      onSubmit={(submitEvent) => {
+        submitEvent.preventDefault();
+        const submitter = (submitEvent.nativeEvent as SubmitEvent).submitter;
+        const formData = new FormData(submitEvent.currentTarget, submitter);
+        startTransition(() => formAction(formData));
+      }}
+      className="mt-6 space-y-6"
+    >
       {event && <input type="hidden" name="id" value={event.id} />}
 
       <div>

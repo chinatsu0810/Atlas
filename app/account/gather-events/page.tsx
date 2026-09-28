@@ -6,9 +6,14 @@ import { isAdmin } from '@/lib/auth/permissions';
 import { getUser } from '@/lib/db/queries';
 import type { GatherEvent } from '@/lib/db/schema';
 import { setGatherEventPublished } from '@/lib/gather/actions';
+import { GATHER_SOURCES } from '@/lib/gather/constants';
 import { addDays, formatEventDate, todayInJapan } from '@/lib/gather/dates';
 import { listGatherEventsForAdmin } from '@/lib/gather/queries';
 import { AccessDenied } from '../users/access-denied';
+
+function sourceLabel(source: string) {
+  return GATHER_SOURCES.find((item) => item.value === source)?.label ?? source;
+}
 
 function statusOf(event: GatherEvent, yesterday: string) {
   if (!event.publishedAt) {
@@ -115,6 +120,9 @@ export default async function GatherEventsAdminPage({
                   </span>
                   <span className="text-muted-foreground">
                     {event.isOnline ? 'オンライン' : [event.country, event.region].filter(Boolean).join('・')}
+                  </span>
+                  <span className="rounded-full bg-[#EAF6F3] px-2 py-0.5 text-[#1F5F5B]">
+                    {sourceLabel(event.source)}
                   </span>
                 </div>
 
