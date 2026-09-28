@@ -1,6 +1,7 @@
 // 「集まる」のイベントで使う選択肢
 
-// テーマ。経験談・Q&Aのテーマタグ（lib/db/seed-tags.ts）から、イベントで使うものを選んでいる
+// テーマ。経験談・Q&Aのテーマタグ（lib/db/seed-tags.ts）と同じ名前にそろえている。
+// 「趣味」だけはイベント用で、経験談・Q&Aのタグにはない
 export const GATHER_THEMES = [
   '子育て',
   '教育',
@@ -11,6 +12,8 @@ export const GATHER_THEMES = [
   '言語',
   '手続き',
   '帰国準備',
+  '趣味',
+  'その他',
 ] as const;
 
 export const GATHER_FORMATS = [

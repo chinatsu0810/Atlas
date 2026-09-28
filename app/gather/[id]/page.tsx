@@ -145,7 +145,10 @@ async function getRelatedQuestions(country: string, themeTagIds: number[]) {
 
 // イベントに行く前に読んでおける、同じ国の経験談・Q&A。
 // イベントのテーマは、経験談・Q&Aのテーマタグと同じ名前にそろえてある（lib/gather/constants.ts）
-async function getRelatedPosts(country: string, themes: string[]) {
+async function getRelatedPosts(country: string, eventThemes: string[]) {
+  // 「その他」は内容がばらばらなので、関連づけには使わない
+  const themes = eventThemes.filter((theme) => theme !== 'その他');
+
   const themeTagIds =
     themes.length === 0
       ? []
