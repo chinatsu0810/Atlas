@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { and, desc, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, notInArray } from 'drizzle-orm';
 import {
   BadgeCheck,
   Building2,
@@ -20,7 +20,13 @@ import { gatherPlaceLabel } from '@/components/gather/event-row';
 import { isAdmin } from '@/lib/auth/permissions';
 import { db } from '@/lib/db/drizzle';
 import { getUser } from '@/lib/db/queries';
-import { experiences, questions } from '@/lib/db/schema';
+import {
+  experienceTags,
+  experiences,
+  questionTags,
+  questions,
+  tags,
+} from '@/lib/db/schema';
 import { GATHER_SOURCES } from '@/lib/gather/constants';
 import { dateParts, formatEventDate } from '@/lib/gather/dates';
 import { getGatherEvent } from '@/lib/gather/queries';
@@ -50,21 +56,109 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-// 同じ国の経験談・Q&A。イベントに行く前に読んでおけるように
-async function getRelatedPosts(country: string) {
+// 経験談・Q&Aそれぞれの表示件数
+const RELATED_LIMIT = 2;
+
+// 同じ国の経験談。イベントと同じテーマのタグがついたものを先に、足りなければ同じ国の新着で補う
+async function getRelatedExperiences(country: string, themeTagIds: number[]) {
+  const sameCountry = and(eq(experiences.country, country), isNull(experiences.deletedAt));
+  const columns = { id: experiences.id, title: experiences.title };
+
+  const matched =
+    themeTagIds.length === 0
+      ? []
+      : await db
+          .select(columns)
+          .from(experiences)
+          .where(
+            and(
+              sameCountry,
+              inArray(
+                experiences.id,
+                db
+                  .select({ id: experienceTags.experienceId })
+                  .from(experienceTags)
+                  .where(inArray(experienceTags.tagId, themeTagIds))
+              )
+            )
+          )
+          .orderBy(desc(experiences.createdAt))
+          .limit(RELATED_LIMIT);
+
+  if (matched.length >= RELATED_LIMIT) return matched;
+
+  const rest = await db
+    .select(columns)
+    .from(experiences)
+    .where(
+      matched.length === 0
+        ? sameCountry
+        : and(sameCountry, notInArray(experiences.id, matched.map((post) => post.id)))
+    )
+    .orderBy(desc(experiences.createdAt))
+    .limit(RELATED_LIMIT - matched.length);
+
+  return [...matched, ...rest];
+}
+
+// 同じ国のQ&A。選び方は経験談と同じ
+async function getRelatedQuestions(country: string, themeTagIds: number[]) {
+  const sameCountry = and(eq(questions.country, country), isNull(questions.deletedAt));
+  const columns = { id: questions.id, title: questions.title };
+
+  const matched =
+    themeTagIds.length === 0
+      ? []
+      : await db
+          .select(columns)
+          .from(questions)
+          .where(
+            and(
+              sameCountry,
+              inArray(
+                questions.id,
+                db
+                  .select({ id: questionTags.questionId })
+                  .from(questionTags)
+                  .where(inArray(questionTags.tagId, themeTagIds))
+              )
+            )
+          )
+          .orderBy(desc(questions.createdAt))
+          .limit(RELATED_LIMIT);
+
+  if (matched.length >= RELATED_LIMIT) return matched;
+
+  const rest = await db
+    .select(columns)
+    .from(questions)
+    .where(
+      matched.length === 0
+        ? sameCountry
+        : and(sameCountry, notInArray(questions.id, matched.map((post) => post.id)))
+    )
+    .orderBy(desc(questions.createdAt))
+    .limit(RELATED_LIMIT - matched.length);
+
+  return [...matched, ...rest];
+}
+
+// イベントに行く前に読んでおける、同じ国の経験談・Q&A。
+// イベントのテーマは、経験談・Q&Aのテーマタグと同じ名前にそろえてある（lib/gather/constants.ts）
+async function getRelatedPosts(country: string, themes: string[]) {
+  const themeTagIds =
+    themes.length === 0
+      ? []
+      : (
+          await db
+            .select({ id: tags.id })
+            .from(tags)
+            .where(and(eq(tags.category, 'theme'), inArray(tags.name, themes)))
+        ).map((tag) => tag.id);
+
   const [relatedExperiences, relatedQuestions] = await Promise.all([
-    db
-      .select({ id: experiences.id, title: experiences.title })
-      .from(experiences)
-      .where(and(eq(experiences.country, country), isNull(experiences.deletedAt)))
-      .orderBy(desc(experiences.createdAt))
-      .limit(2),
-    db
-      .select({ id: questions.id, title: questions.title })
-      .from(questions)
-      .where(and(eq(questions.country, country), isNull(questions.deletedAt)))
-      .orderBy(desc(questions.createdAt))
-      .limit(2),
+    getRelatedExperiences(country, themeTagIds),
+    getRelatedQuestions(country, themeTagIds),
   ]);
 
   return [
@@ -83,7 +177,7 @@ export default async function GatherEventPage({ params }: Props) {
     if (!user || !(await isAdmin(user.id))) notFound();
   }
 
-  const relatedPosts = await getRelatedPosts(event.country).catch((error) => {
+  const relatedPosts = await getRelatedPosts(event.country, event.themes).catch((error) => {
     console.error('Failed to load related posts:', error);
     return [];
   });
