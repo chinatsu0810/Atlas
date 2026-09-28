@@ -3,6 +3,7 @@ import Link from 'next/link';
 import {
   ArrowRight,
   CalendarDays,
+  History,
   MessageCircle,
   Send,
   Sparkles,
@@ -18,7 +19,11 @@ import {
   type GatherWhen,
 } from '@/lib/gather/constants';
 import { monthStart, todayInJapan, weekendRange } from '@/lib/gather/dates';
-import { listGatherEvents, listGatherRegions } from '@/lib/gather/queries';
+import {
+  listGatherEvents,
+  listGatherRegions,
+  listRecentPastGatherEvents,
+} from '@/lib/gather/queries';
 import { GatherCountrySelect } from '@/components/gather/country-select';
 import { GatherEventRow } from '@/components/gather/event-row';
 
@@ -60,12 +65,27 @@ export default async function GatherPage({ searchParams }: Props) {
   const theme = isGatherTheme(params.theme ?? '') ? params.theme! : '';
   const when: GatherWhen = isGatherWhen(params.when ?? '') ? (params.when as GatherWhen) : 'all';
 
+  // 終わったイベント（直近1か月）は、期間を「すべて」「オンライン」にしているときだけ出す。
+  // 「今週末」「来月」などは、これからの予定を探す切り替えなので出さない
+  const showPast = when === 'all' || when === 'online';
+
   // テーブルがまだ無い環境（マイグレーション前）でも、ページは空の一覧として表示する
-  const [events, regions] = await Promise.all([
+  const [events, pastEvents, regions] = await Promise.all([
     listGatherEvents({ country, region, theme, when }).catch((error) => {
       console.error('Failed to load gather events:', error);
       return [];
     }),
+    showPast
+      ? listRecentPastGatherEvents({
+          country,
+          region,
+          theme,
+          onlineOnly: when === 'online',
+        }).catch((error) => {
+          console.error('Failed to load past gather events:', error);
+          return [];
+        })
+      : Promise.resolve([]),
     country
       ? listGatherRegions(country).catch((error) => {
           console.error('Failed to load gather regions:', error);
@@ -214,7 +234,11 @@ export default async function GatherPage({ searchParams }: Props) {
                 <CalendarDays className="mx-auto h-8 w-8 text-[#B7CCDA]" />
                 {filtered ? (
                   <>
-                    <p className="mt-3 text-sm text-[#668096]">条件に合うイベントはありません。</p>
+                    <p className="mt-3 text-sm text-[#668096]">
+                      {pastEvents.length > 0
+                        ? '条件に合う、これから開催されるイベントはありません。'
+                        : '条件に合うイベントはありません。'}
+                    </p>
                     <Link
                       href="/gather"
                       className="mt-4 inline-block rounded-full border border-[#D8E7F0] px-4 py-2 text-sm text-[#35617E] hover:bg-[#F1F8FC]"
@@ -224,7 +248,11 @@ export default async function GatherPage({ searchParams }: Props) {
                   </>
                 ) : (
                   <>
-                    <p className="mt-3 text-sm text-[#668096]">まだ掲載中のイベントはありません。</p>
+                    <p className="mt-3 text-sm text-[#668096]">
+                      {pastEvents.length > 0
+                        ? 'これから開催されるイベントは、いまはありません。'
+                        : 'まだ掲載中のイベントはありません。'}
+                    </p>
                     <p className="mt-1 text-xs leading-5 text-[#8AA0B0]">
                       海外で、日本語で参加できるイベントを、これから少しずつ掲載していきます。
                     </p>
@@ -245,6 +273,26 @@ export default async function GatherPage({ searchParams }: Props) {
                   </div>
                 </section>
               ))
+            )}
+
+            {pastEvents.length > 0 && (
+              <section className="mt-10 border-t border-[#DCEAF2] pt-6">
+                <h2 className="flex items-center gap-2 text-sm font-bold text-[#406783]">
+                  <History className="h-4 w-4" />
+                  終わったイベント
+                  <span className="text-xs font-medium text-[#8AA0B0]">
+                    直近1か月・{pastEvents.length}件
+                  </span>
+                </h2>
+                <p className="mb-3 mt-1 text-xs text-[#8AA0B0]">
+                  この1か月に開催されたイベントです。新しい順に並んでいます。
+                </p>
+                <div className="space-y-2">
+                  {pastEvents.map((event) => (
+                    <GatherEventRow key={event.id} event={event} ended />
+                  ))}
+                </div>
+              </section>
             )}
           </div>
 

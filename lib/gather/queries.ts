@@ -18,7 +18,8 @@ import { db } from '@/lib/db/drizzle';
 import { gatherEvents } from '@/lib/db/schema';
 import type { GatherWhen } from '@/lib/gather/constants';
 import {
-  addDays,
+  addMonths,
+  firstUpcomingDate,
   monthStart,
   todayInJapan,
   weekendRange,
@@ -31,25 +32,36 @@ export type GatherEventFilters = {
   when: GatherWhen;
 };
 
-// 公開中で、まだ終わっていないイベント。
-// 日本より時差が遅い国のために、日本時間の前日に開催されたものまで含める
-function upcomingPublished(): SQL[] {
-  return [
-    isNull(gatherEvents.deletedAt),
-    isNotNull(gatherEvents.publishedAt),
-    gte(gatherEvents.eventDate, addDays(todayInJapan(), -1)),
-  ];
+// 終わったイベントも、この日以降に開催されたものは一覧に残す（直近1か月）
+function recentPastFrom(): string {
+  return addMonths(todayInJapan(), -1);
 }
 
-export async function listGatherEvents(filters: GatherEventFilters) {
-  const conditions = upcomingPublished();
-  const today = todayInJapan();
+function published(): SQL[] {
+  return [isNull(gatherEvents.deletedAt), isNotNull(gatherEvents.publishedAt)];
+}
+
+// 国・地域・テーマの絞り込み
+function placeAndTheme(filters: Omit<GatherEventFilters, 'when'>): SQL[] {
+  const conditions: SQL[] = [];
 
   if (filters.country) conditions.push(eq(gatherEvents.country, filters.country));
   if (filters.region) conditions.push(eq(gatherEvents.region, filters.region));
   if (filters.theme) {
     conditions.push(arrayContains(gatherEvents.themes, [filters.theme]));
   }
+
+  return conditions;
+}
+
+// これから開催されるイベント（開催日の近い順）
+export async function listGatherEvents(filters: GatherEventFilters) {
+  const conditions = [
+    ...published(),
+    gte(gatherEvents.eventDate, firstUpcomingDate()),
+    ...placeAndTheme(filters),
+  ];
+  const today = todayInJapan();
 
   if (filters.when === 'weekend') {
     const [saturday, sunday] = weekendRange(today);
@@ -75,14 +87,37 @@ export async function listGatherEvents(filters: GatherEventFilters) {
     .limit(200);
 }
 
-// 国を選んだときに出す、地域の選択肢（公開中のイベントがある地域だけ）
+// 直近1か月に終わったイベント（開催日の新しい順）。
+// 「ちょっと前に何があったか」を見られるように、これからのイベントの下に出す
+export async function listRecentPastGatherEvents(
+  filters: Omit<GatherEventFilters, 'when'> & { onlineOnly: boolean }
+) {
+  const conditions = [
+    ...published(),
+    gte(gatherEvents.eventDate, recentPastFrom()),
+    lt(gatherEvents.eventDate, firstUpcomingDate()),
+    ...placeAndTheme(filters),
+  ];
+
+  if (filters.onlineOnly) conditions.push(eq(gatherEvents.isOnline, true));
+
+  return db
+    .select()
+    .from(gatherEvents)
+    .where(and(...conditions))
+    .orderBy(desc(gatherEvents.eventDate), desc(gatherEvents.id))
+    .limit(100);
+}
+
+// 国を選んだときに出す、地域の選択肢（一覧に出るイベントがある地域だけ）
 export async function listGatherRegions(country: string): Promise<string[]> {
   const rows = await db
     .selectDistinct({ region: gatherEvents.region })
     .from(gatherEvents)
     .where(
       and(
-        ...upcomingPublished(),
+        ...published(),
+        gte(gatherEvents.eventDate, recentPastFrom()),
         eq(gatherEvents.country, country),
         isNotNull(gatherEvents.region)
       )

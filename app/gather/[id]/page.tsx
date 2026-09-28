@@ -28,7 +28,7 @@ import {
   tags,
 } from '@/lib/db/schema';
 import { GATHER_SOURCES } from '@/lib/gather/constants';
-import { dateParts, formatEventDate } from '@/lib/gather/dates';
+import { dateParts, formatEventDate, isEndedEvent } from '@/lib/gather/dates';
 import { getGatherEvent } from '@/lib/gather/queries';
 
 type Props = {
@@ -185,6 +185,7 @@ export default async function GatherEventPage({ params }: Props) {
     return [];
   });
 
+  const ended = isEndedEvent(event.eventDate);
   const { month, day, weekday } = dateParts(event.eventDate);
   const PlaceIcon = event.isOnline ? Video : MapPin;
   const sourceLabel =
@@ -218,6 +219,12 @@ export default async function GatherEventPage({ params }: Props) {
         {!event.publishedAt && (
           <p className="mb-4 rounded-xl border border-[#F6DFA8] bg-[#FFF6E0] px-4 py-3 text-sm text-[#7A5B12]">
             下書きです。運営だけに表示されています。
+          </p>
+        )}
+
+        {ended && (
+          <p className="mb-4 rounded-xl border border-[#DCE4EA] bg-[#F1F5F8] px-4 py-3 text-sm text-[#4F6B80]">
+            このイベントは終了しました。
           </p>
         )}
 
@@ -284,7 +291,7 @@ export default async function GatherEventPage({ params }: Props) {
                 })}
               </dl>
 
-              {event.applyUrl && (
+              {event.applyUrl && !ended && (
                 <a
                   href={event.applyUrl}
                   target="_blank"

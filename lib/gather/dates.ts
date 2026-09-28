@@ -25,6 +25,19 @@ export function addDays(date: string, days: number): string {
   return toDateString(result);
 }
 
+// months か月前後の同じ日。その月に同じ日がなければ月末（例: 3月31日の1か月前は2月28日）
+export function addMonths(date: string, months: number): string {
+  const base = toUtcDate(date);
+  const target = new Date(
+    Date.UTC(base.getUTCFullYear(), base.getUTCMonth() + months, 1)
+  );
+  const lastDay = new Date(
+    Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)
+  ).getUTCDate();
+  target.setUTCDate(Math.min(base.getUTCDate(), lastDay));
+  return toDateString(target);
+}
+
 // その月の1日。offset で前後の月にずらす
 export function monthStart(date: string, offset = 0): string {
   const base = toUtcDate(date);
@@ -38,6 +51,16 @@ export function weekendRange(today: string): [string, string] {
   const weekday = toUtcDate(today).getUTCDay();
   const saturday = weekday === 0 ? addDays(today, -1) : addDays(today, 6 - weekday);
   return [saturday, addDays(saturday, 1)];
+}
+
+// これから開催されるイベントの最初の日。
+// 日本より時差が遅い国のために、日本時間の前日に開催されたものまで「これから」に含める
+export function firstUpcomingDate(): string {
+  return addDays(todayInJapan(), -1);
+}
+
+export function isEndedEvent(eventDate: string): boolean {
+  return eventDate < firstUpcomingDate();
 }
 
 export function dateParts(date: string) {
