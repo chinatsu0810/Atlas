@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { LucideIcon } from 'lucide-react';
-import { ChevronDown, Gift, PenLine, Search } from 'lucide-react';
+import { ChevronDown, Gift, PenLine, Search, UsersRound } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,7 +39,13 @@ const navGroups: NavGroup[] = [
   },
 ];
 
-const comingSoonItems = ['つながる', 'AI検索', '便利リンク集'];
+// ドロップダウンを持たない、機能の入口
+const sectionLinks: { href: string; label: string; icon: LucideIcon }[] = [
+  { href: '/giveaways', label: '譲る', icon: Gift },
+  { href: '/gather', label: '集まる', icon: UsersRound },
+];
+
+const comingSoonItems = ['AI検索', '便利リンク集'];
 
 function getActiveGroup(pathname: string): NavGroup['key'] | null {
   if (pathname === '/experiences/new' || pathname === '/questions/new') {
@@ -106,10 +112,19 @@ function NavGroupMenu({
   );
 }
 
-function GiveawaysLink({ compact }: { compact?: boolean }) {
+function SectionLink({
+  href,
+  label,
+  icon: Icon,
+  compact,
+}: {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  compact?: boolean;
+}) {
   const pathname = usePathname();
-  const active =
-    pathname === '/giveaways' || pathname.startsWith('/giveaways/');
+  const active = pathname === href || pathname.startsWith(`${href}/`);
 
   const className = compact
     ? `flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-4 py-2 text-xs font-medium transition ${
@@ -124,9 +139,9 @@ function GiveawaysLink({ compact }: { compact?: boolean }) {
       }`;
 
   return (
-    <Link href="/giveaways" className={className}>
-      <Gift className={compact ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
-      譲る
+    <Link href={href} className={className}>
+      <Icon className={compact ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
+      {label}
     </Link>
   );
 }
@@ -153,7 +168,9 @@ export function HeaderNavDesktop() {
         />
       ))}
 
-      <GiveawaysLink />
+      {sectionLinks.map((link) => (
+        <SectionLink key={link.href} {...link} />
+      ))}
 
       <span className="mx-2 h-5 w-px shrink-0 bg-[#E5EAEA]" aria-hidden />
 
@@ -188,7 +205,9 @@ export function HeaderNavMobile() {
         />
       ))}
 
-      <GiveawaysLink compact />
+      {sectionLinks.map((link) => (
+        <SectionLink key={link.href} {...link} compact />
+      ))}
 
       <span className="mx-1 h-4 w-px shrink-0 bg-[#E5EAEA]" aria-hidden />
 

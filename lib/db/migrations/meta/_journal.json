@@ -169,6 +169,13 @@
       "when": 1790429136568,
       "tag": "0023_giveaway_moderation",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1790599726774,
+      "tag": "0024_gather_events",
+      "breakpoints": true
     }
   ]
 }

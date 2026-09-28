@@ -43,6 +43,15 @@ const activeServices: {
       { label: '使い方を見る', href: '/giveaways/guide' },
     ],
   },
+  {
+    icon: UsersRound,
+    title: '集まる',
+    description: '海外で、日本語で参加できるイベントを探す',
+    links: [
+      { label: 'イベントを探す', href: '/gather' },
+      { label: '掲載を依頼する', href: '/contact' },
+    ],
+  },
 ];
 
 const comingSoonServices: {
@@ -50,11 +59,6 @@ const comingSoonServices: {
   title: string;
   description: string;
 }[] = [
-  {
-    icon: UsersRound,
-    title: 'つながる',
-    description: '同じ国・同じ立場の仲間と出会えるコミュニティ',
-  },
   {
     icon: WandSparkles,
     title: 'AI検索',

@@ -9,6 +9,7 @@ import {
   Flag,
   Mail,
   Building2,
+  CalendarDays,
   Users,
   ChevronRight,
 } from 'lucide-react';
@@ -187,6 +188,33 @@ export default async function AccountPage() {
                         未対応 {openGiveawayReports}
                       </span>
                     )}
+
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground md:h-5 md:w-5" />
+
+                  </CardContent>
+                </Card>
+              </Link>
+
+              <Link
+                href="/account/gather-events"
+                className="block"
+              >
+                <Card className="cursor-pointer transition hover:bg-muted/50">
+                  <CardContent className="flex items-center gap-3 p-4 md:gap-4 md:p-5">
+
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-100 md:h-10 md:w-10">
+                      <CalendarDays className="h-4 w-4 text-orange-500 md:h-5 md:w-5" />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <h2 className="text-sm font-bold md:text-base">
+                        「集まる」のイベント
+                      </h2>
+
+                      <p className="mt-0.5 text-xs text-muted-foreground md:text-sm">
+                        「集まる」に載せるイベントを追加・編集・削除できます。
+                      </p>
+                    </div>
 
                     <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground md:h-5 md:w-5" />
 

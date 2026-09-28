@@ -1290,3 +1290,76 @@ export type Giveaway = typeof giveaways.$inferSelect;
 export type GiveawayImage = typeof giveawayImages.$inferSelect;
 export type GiveawayThread = typeof giveawayThreads.$inferSelect;
 export type GiveawayMessage = typeof giveawayMessages.$inferSelect;
+
+// ============================================================
+// Gather（集まる）のイベント
+//
+// 利用者は投稿できない。主催者から依頼を受けたもの、または運営が選んだものを、
+// 運営画面（/account/gather-events）から登録する。
+// published_at が NULL のあいだは下書きで、公開ページには出さない。
+// ============================================================
+
+export const gatherEvents = pgTable(
+  'gather_events',
+  {
+    id: serial('id').primaryKey(),
+
+    title: varchar('title', { length: 100 }).notNull(),
+
+    description: text('description').notNull(),
+
+    // 開催日（現地の日付）
+    eventDate: date('event_date').notNull(),
+
+    // 開始時刻。「10:00」「21:00（日本時間）」のように自由記載
+    startTime: varchar('start_time', { length: 50 }),
+
+    country: varchar('country', { length: 100 }).notNull(),
+
+    // 都市・地域（例: グルガオン）。オンラインのイベントでは NULL でもよい
+    region: varchar('region', { length: 100 }),
+
+    isOnline: boolean('is_online').notNull().default(false),
+
+    // 会場（オンラインなら「Zoom」など）。詳しい住所は書かない
+    venue: varchar('venue', { length: 200 }),
+
+    // lib/gather/constants.ts の GATHER_THEMES
+    themes: text('themes').array().notNull().default(sql`'{}'::text[]`),
+
+    // lib/gather/constants.ts の GATHER_FORMATS
+    format: varchar('format', { length: 20 }).notNull(),
+
+    fee: varchar('fee', { length: 100 }),
+
+    // 対象（例: 0歳〜未就学児と保護者）
+    audience: varchar('audience', { length: 200 }),
+
+    organizerName: varchar('organizer_name', { length: 100 }).notNull(),
+
+    // 主催者のページ
+    organizerUrl: text('organizer_url'),
+
+    // 申込ページ
+    applyUrl: text('apply_url'),
+
+    // 'request'（主催者からの依頼）| 'pick'（運営が選んだ）
+    source: varchar('source', { length: 20 }).notNull().default('request'),
+
+    createdBy: integer('created_by').references(() => users.id),
+
+    publishedAt: timestamp('published_at'),
+
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+
+    // 運営が最後に内容を確認・更新した日時。公開ページに「確認日」として出す
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+
+    deletedAt: timestamp('deleted_at'),
+  },
+  (table) => ({
+    eventDateIdx: index('gather_events_event_date_idx').on(table.eventDate),
+  })
+);
+
+export type GatherEvent = typeof gatherEvents.$inferSelect;
