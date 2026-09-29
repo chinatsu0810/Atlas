@@ -1,5 +1,11 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
+
+export const metadata: Metadata = {
+  title: 'Atlasについて｜Atlas',
+  alternates: { canonical: '/about' },
+};
 
 const sections = [
   {

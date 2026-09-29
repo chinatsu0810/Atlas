@@ -12,6 +12,7 @@ import type { ZodType } from 'zod';
 
 import type { Employee } from './employee';
 import { buildEmployeePersona } from './employee';
+import { fromApiUsage, type SkillUsage } from './usage';
 
 export const DEFAULT_SKILL_MODEL = 'claude-opus-5';
 
@@ -24,7 +25,7 @@ export class SkillCallError extends Error {}
 // キーが未設定の環境（Vercelのプレビューなど）で、AIと無関係なページも含めてビルドが失敗するため。
 let anthropicClient: Anthropic | null = null;
 
-function getAnthropicClient(): Anthropic {
+export function getAnthropicClient(): Anthropic {
   if (anthropicClient) return anthropicClient;
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -70,6 +71,8 @@ export type RunSkillOptions = {
   effort?: SkillEffort;
   // 人格とスキル固有の作業指示の間に差し込む、共通ルール（例: 会議の社員に共通の「短く・結論から」）
   sharedRules?: string;
+  // AIを呼ぶたびに、その使用量を受け取る（費用の記録用。失敗した呼び出しでも、応答があれば呼ばれる）
+  onUsage?: (usage: SkillUsage) => void;
 };
 
 export async function runSkill<TInput, TOutput>(
@@ -80,58 +83,84 @@ export async function runSkill<TInput, TOutput>(
 ): Promise<TOutput> {
   const ctx: SkillContext<TInput> = { employee, input };
 
-  const system = [
-    buildEmployeePersona(employee),
+  return requestSkillOutput(
+    skill,
+    buildSkillSystemPrompt(skill, ctx, options),
+    skill.buildUserPrompt(ctx),
+    options
+  );
+}
+
+// 社員の人格・共通ルール・スキルの作業指示をつなげた、システムプロンプト
+export function buildSkillSystemPrompt<TInput, TOutput>(
+  skill: Skill<TInput, TOutput>,
+  ctx: SkillContext<TInput>,
+  options: RunSkillOptions = {}
+): string {
+  return [
+    buildEmployeePersona(ctx.employee),
     options.sharedRules,
     skill.buildTaskInstructions(ctx),
   ]
     .filter(Boolean)
     .join('\n\n');
+}
 
+// Anthropic API の失敗を、画面に出せる文言の SkillCallError に変える
+export function toSkillCallError(skillId: string, error: unknown): SkillCallError {
+  // ユーザー向けには一般的な文言にするため、原因の調査用に詳細をサーバーログへ残す
+  console.error(`runSkill(${skillId}): Anthropic API call failed`, error);
+
+  if (error instanceof Anthropic.AuthenticationError) {
+    return new SkillCallError('AIサービスの認証に失敗しました。管理者に連絡してください。');
+  }
+
+  if (error instanceof Anthropic.RateLimitError) {
+    return new SkillCallError(
+      '現在アクセスが集中しています。しばらくしてからもう一度お試しください。'
+    );
+  }
+
+  // 残高不足は 400（invalid_request_error）で返ってくる。再試行しても直らないので、専用の文言にする
+  if (error instanceof Anthropic.BadRequestError && /credit balance/i.test(error.message)) {
+    return new SkillCallError('AIサービスの利用残高が不足しています。管理者に連絡してください。');
+  }
+
+  if (error instanceof Anthropic.APIError) {
+    return new SkillCallError('AIとの通信に失敗しました。もう一度お試しください。');
+  }
+
+  return new SkillCallError('AI呼び出し中に予期しないエラーが発生しました。');
+}
+
+// 構造化出力でスキルを1回実行し、出力を検証して返す
+export async function requestSkillOutput<TInput, TOutput>(
+  skill: Skill<TInput, TOutput>,
+  system: string,
+  userPrompt: string,
+  options: RunSkillOptions = {}
+): Promise<TOutput> {
   const client = getAnthropicClient();
+  const model = skill.model ?? DEFAULT_SKILL_MODEL;
 
   let response: Anthropic.Message;
 
   try {
     response = await client.messages.create({
-      model: skill.model ?? DEFAULT_SKILL_MODEL,
+      model,
       max_tokens: skill.maxTokens ?? 8192,
       system,
-      messages: [{ role: 'user', content: skill.buildUserPrompt(ctx) }],
+      messages: [{ role: 'user', content: userPrompt }],
       output_config: {
         format: { type: 'json_schema', schema: skill.jsonSchema },
         ...(options.effort ? { effort: options.effort } : {}),
       },
     });
   } catch (error) {
-    // ユーザー向けには一般的な文言にするため、原因の調査用に詳細をサーバーログへ残す
-    console.error(`runSkill(${skill.id}): Anthropic API call failed`, error);
-
-    if (error instanceof Anthropic.AuthenticationError) {
-      throw new SkillCallError(
-        'AIサービスの認証に失敗しました。管理者に連絡してください。'
-      );
-    }
-
-    if (error instanceof Anthropic.RateLimitError) {
-      throw new SkillCallError(
-        '現在アクセスが集中しています。しばらくしてからもう一度お試しください。'
-      );
-    }
-
-    // 残高不足は 400（invalid_request_error）で返ってくる。再試行しても直らないので、専用の文言にする
-    if (error instanceof Anthropic.BadRequestError && /credit balance/i.test(error.message)) {
-      throw new SkillCallError(
-        'AIサービスの利用残高が不足しています。管理者に連絡してください。'
-      );
-    }
-
-    if (error instanceof Anthropic.APIError) {
-      throw new SkillCallError('AIとの通信に失敗しました。もう一度お試しください。');
-    }
-
-    throw new SkillCallError('AI呼び出し中に予期しないエラーが発生しました。');
+    throw toSkillCallError(skill.id, error);
   }
+
+  options.onUsage?.(fromApiUsage(model, response.usage));
 
   if (response.stop_reason === 'refusal') {
     throw new SkillCallError(

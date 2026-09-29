@@ -60,6 +60,8 @@ const gatherEventSchema = z.object({
   country: z
     .string()
     .refine((value) => countries.includes(value), '国を選んでください。'),
+  // 国で「その他」を選んだときの国名
+  countryFreeText: z.string().trim().max(100, '国名は100文字以内で入力してください。').optional(),
   region: optionalText(100, '地域'),
   // チェックボックス。チェックされたときだけ 'on' が送られる
   isOnline: z.string().optional(),
@@ -111,8 +113,13 @@ export async function saveGatherEvent(
     return { error: parsed.error.errors[0].message };
   }
 
-  const { intent, isOnline, ...input } = parsed.data;
+  const { intent, isOnline, countryFreeText, ...input } = parsed.data;
   const online = isOnline === 'on';
+
+  if (input.country === 'その他') {
+    if (!countryFreeText) return { error: '国名を入力してください。' };
+    input.country = countryFreeText;
+  }
 
   if (!online && !input.region) {
     return { error: '地域（都市）を入力してください。オンラインの場合は「オンライン開催」にチェックしてください。' };

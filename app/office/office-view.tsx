@@ -6,6 +6,7 @@ import { Bell, Building2, Clock, DoorOpen, Plus } from 'lucide-react';
 
 import type { OfficeEmployee, OfficeRoom, OfficeState } from '@/lib/office/types';
 import { EmployeeAvatar } from './employee-avatar';
+import { OfficeIllustration } from './office-illustration';
 
 const POLL_INTERVAL_MS = 5000;
 
@@ -225,6 +226,66 @@ export function OfficeView({ initialState }: { initialState: OfficeState }) {
           </div>
         )}
 
+        {/* オフィスの様子と TODAY'S WORK */}
+        <div className="mb-8 grid gap-4 lg:grid-cols-[3fr_2fr]">
+          <div className="overflow-hidden rounded-3xl bg-[#6F8B8F] shadow-sm">
+            <OfficeIllustration rooms={state.rooms} membersByTeam={membersByTeam} />
+          </div>
+
+          {/* TODAY'S WORK（PCではイラストと同じ高さに収めて中をスクロール） */}
+          <div className="relative min-h-0">
+            <div className="flex flex-col rounded-3xl border border-[#E1EBF1] bg-white p-5 shadow-sm lg:absolute lg:inset-0">
+              <p className="mb-4 text-xs font-semibold tracking-wide text-[#6B8498]">
+                TODAY&apos;S WORK
+              </p>
+
+              {state.activity.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  本日はまだ活動記録がありません。
+                </p>
+              ) : (
+                <ol className="max-h-72 space-y-4 overflow-y-auto pr-1 lg:max-h-none lg:min-h-0 lg:flex-1">
+                  {state.activity.map((entry) => (
+                    <li key={entry.id} className="flex gap-3">
+                      <div className="flex w-14 shrink-0 flex-col items-end pt-0.5">
+                        <span className="text-xs font-medium text-[#6B8498]">
+                          {formatTime(entry.time)}
+                        </span>
+                      </div>
+
+                      <div className="relative flex shrink-0 flex-col items-center">
+                        <span
+                          className={`h-2.5 w-2.5 rounded-full ${
+                            entry.isNotification
+                              ? 'bg-orange-500'
+                              : 'bg-[#1478B8]'
+                          }`}
+                        />
+                        <span className="mt-1 w-px flex-1 bg-[#E1EBF1]" />
+                      </div>
+
+                      <div className="min-w-0 flex-1 pb-1">
+                        <p className="text-sm">
+                          {entry.isNotification && (
+                            <Bell className="mr-1 inline-block h-3.5 w-3.5 text-orange-500" />
+                          )}
+                          <span className="font-semibold text-[#123B5D]">
+                            {entry.employeeName}
+                          </span>
+                          <span className="ml-1.5 text-xs text-[#6B8498]">
+                            {entry.employeeRole}
+                          </span>
+                        </p>
+                        <p className="text-sm text-gray-600">{entry.message}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* オフィスフロア */}
         <div className="space-y-6">
           {state.rooms.map((room) => (
@@ -247,57 +308,6 @@ export function OfficeView({ initialState }: { initialState: OfficeState }) {
               <MemberList members={members} />
             </div>
           ))}
-        </div>
-
-        {/* TODAY'S WORK */}
-        <div className="mt-8 rounded-3xl border border-[#E1EBF1] bg-white p-6 shadow-sm">
-          <p className="mb-5 text-xs font-semibold tracking-wide text-[#6B8498]">
-            TODAY&apos;S WORK
-          </p>
-
-          {state.activity.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              本日はまだ活動記録がありません。
-            </p>
-          ) : (
-            <ol className="space-y-4">
-              {state.activity.map((entry) => (
-                <li key={entry.id} className="flex gap-3">
-                  <div className="flex w-14 shrink-0 flex-col items-end pt-0.5">
-                    <span className="text-xs font-medium text-[#6B8498]">
-                      {formatTime(entry.time)}
-                    </span>
-                  </div>
-
-                  <div className="relative flex shrink-0 flex-col items-center">
-                    <span
-                      className={`h-2.5 w-2.5 rounded-full ${
-                        entry.isNotification
-                          ? 'bg-orange-500'
-                          : 'bg-[#1478B8]'
-                      }`}
-                    />
-                    <span className="mt-1 w-px flex-1 bg-[#E1EBF1]" />
-                  </div>
-
-                  <div className="min-w-0 flex-1 pb-1">
-                    <p className="text-sm">
-                      {entry.isNotification && (
-                        <Bell className="mr-1 inline-block h-3.5 w-3.5 text-orange-500" />
-                      )}
-                      <span className="font-semibold text-[#123B5D]">
-                        {entry.employeeName}
-                      </span>
-                      <span className="ml-1.5 text-xs text-[#6B8498]">
-                        {entry.employeeRole}
-                      </span>
-                    </p>
-                    <p className="text-sm text-gray-600">{entry.message}</p>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          )}
         </div>
       </div>
     </div>

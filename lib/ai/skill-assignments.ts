@@ -23,6 +23,11 @@ import { userAdvocateEmployee } from '@/lib/ai/employees/user-advocate';
 import { exitPlannerEmployee } from '@/lib/ai/employees/exit-planner';
 import { experimentDriverEmployee } from '@/lib/ai/employees/experiment-driver';
 import { managementAuditorEmployee } from '@/lib/ai/employees/management-auditor';
+import { guideChiefEmployee } from '@/lib/ai/employees/guide-chief';
+import { guideResearcherEmployee } from '@/lib/ai/employees/guide-researcher';
+import { guideFactCheckerEmployee } from '@/lib/ai/employees/guide-fact-checker';
+import { guideWriterEmployee } from '@/lib/ai/employees/guide-writer';
+import { guideReviewerEmployee } from '@/lib/ai/employees/guide-reviewer';
 
 import { threadResearchSkill } from '@/lib/ai/skills/thread-research';
 import { threadTopicPlanningSkill } from '@/lib/ai/skills/thread-topic-planning';
@@ -41,6 +46,11 @@ import { experimentDesignSkill } from '@/lib/ai/skills/experiment-design';
 import { proposalReviewSkill } from '@/lib/ai/skills/proposal-review';
 import { factCheckSkill } from '@/lib/ai/skills/fact-check';
 import { kpiReviewSkill } from '@/lib/ai/skills/kpi-review';
+import { guidePlanningSkill } from '@/lib/ai/skills/guide-planning';
+import { guideResearchSkill } from '@/lib/ai/skills/guide-research';
+import { guideFactCheckSkill } from '@/lib/ai/skills/guide-fact-check';
+import { guideWritingSkill } from '@/lib/ai/skills/guide-writing';
+import { guideReviewSkill } from '@/lib/ai/skills/guide-review';
 
 const ASSIGNMENTS: [Employee, AnySkill[]][] = [
   // Threadsチーム
@@ -59,6 +69,13 @@ const ASSIGNMENTS: [Employee, AnySkill[]][] = [
   [exitPlannerEmployee, [exitCriteriaSkill]],
   [experimentDriverEmployee, [experimentDesignSkill]],
   [managementAuditorEmployee, [proposalReviewSkill, factCheckSkill]],
+
+  // ガイド編集部（国・地域別まとめ）
+  [guideChiefEmployee, [guidePlanningSkill]],
+  [guideResearcherEmployee, [guideResearchSkill]],
+  [guideFactCheckerEmployee, [guideFactCheckSkill]],
+  [guideWriterEmployee, [guideWritingSkill]],
+  [guideReviewerEmployee, [guideReviewSkill]],
 ];
 
 // employeeId → 使えるskillIdの一覧

@@ -1,0 +1,1 @@
+ALTER TABLE "place_guides" ADD COLUMN "usage" jsonb DEFAULT '[]'::jsonb NOT NULL;

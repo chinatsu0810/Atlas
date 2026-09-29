@@ -5,6 +5,7 @@
 
 import type { Employee } from '@/lib/ai/core/employee';
 import { runSkill, type RunSkillOptions, type Skill } from '@/lib/ai/core/skill';
+import { runWebSkill, type WebSkillResult, type WebToolLimits } from '@/lib/ai/core/web-skill';
 import { isSkillAssigned } from '@/lib/ai/skill-assignments';
 
 export class SkillNotAssignedError extends Error {}
@@ -35,4 +36,14 @@ export function runStep<TInput, TOutput>(
   options?: RunSkillOptions
 ): Promise<TOutput> {
   return runSkill(step.skill, step.employee, input, options);
+}
+
+// Web検索・Web取得を使うステップ（lib/ai/core/web-skill.ts）
+export function runWebStep<TInput, TOutput>(
+  step: WorkflowStep<TInput, TOutput>,
+  input: TInput,
+  limits: WebToolLimits,
+  options?: RunSkillOptions
+): Promise<WebSkillResult<TOutput>> {
+  return runWebSkill(step.skill, step.employee, input, limits, options);
 }

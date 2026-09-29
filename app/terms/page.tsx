@@ -14,6 +14,7 @@ export const metadata: Metadata = {
   title: '利用規約｜Atlas',
   description:
     'Atlasをご利用いただく際のルールです。アカウント、投稿、禁止事項、免責事項などについて定めています。',
+  alternates: { canonical: '/terms' },
 };
 
 export default function TermsPage() {

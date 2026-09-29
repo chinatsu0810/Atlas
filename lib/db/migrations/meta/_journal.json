@@ -176,6 +176,20 @@
       "when": 1790599726774,
       "tag": "0024_gather_events",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1790681658427,
+      "tag": "0025_place_guides",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1790685527992,
+      "tag": "0026_place_guides_usage",
+      "breakpoints": true
     }
   ]
 }

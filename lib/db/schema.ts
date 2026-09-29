@@ -1363,3 +1363,67 @@ export const gatherEvents = pgTable(
 );
 
 export type GatherEvent = typeof gatherEvents.$inferSelect;
+
+// ============================================================
+// 国・地域別まとめ（/places の国×地域×テーマのページ上部に出す、公式情報などのまとめ）
+// AI社員（ガイド編集部）が作り、会長が確認・手直しして公開する。
+// 仕様は docs/ai/guides.md。JSON列の中身は lib/ai/guides/types.ts で検証する
+// ============================================================
+
+export const placeGuides = pgTable(
+  'place_guides',
+  {
+    id: serial('id').primaryKey(),
+
+    // lib/places/data.ts の国・地域・テーマの識別子（例: in / delhi-gurgaon / education）
+    countrySlug: varchar('country_slug', { length: 50 }).notNull(),
+    regionSlug: varchar('region_slug', { length: 50 }).notNull(),
+    themeKey: varchar('theme_key', { length: 50 }).notNull(),
+
+    // GuideStatus（lib/ai/guides/types.ts）
+    status: varchar('status', { length: 20 }).notNull().default('planning'),
+
+    // 段階の実行中に立てる（同時に2回動かさないため）。終わったら null に戻す
+    runningSince: timestamp('running_since'),
+
+    // 直近の失敗の理由。同じ段階からやり直せる
+    error: text('error'),
+
+    // 各段階の結果
+    plan: jsonb('plan'),
+    research: jsonb('research'),
+    factCheck: jsonb('fact_check'),
+    review: jsonb('review'),
+
+    // 審査で差し戻された回数（書き直しは1回まで）
+    reviewRounds: integer('review_rounds').notNull().default(0),
+
+    // AI呼び出しの使用量と費用の目安（GuideUsageEntry[]。段階ごとに追記する）
+    usage: jsonb('usage').notNull().default([]),
+
+    // 会長の指示（作成時）・差し戻しコメント
+    chairmanNote: text('chairman_note'),
+    chairmanFeedback: text('chairman_feedback'),
+
+    // 下書き（AIが書いたもの。会長の手直しもここに保存する）と、公開中の中身
+    draft: jsonb('draft'),
+    publishedContent: jsonb('published_content'),
+
+    createdBy: integer('created_by').references(() => users.id),
+    publishedBy: integer('published_by').references(() => users.id),
+    publishedAt: timestamp('published_at'),
+
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+    deletedAt: timestamp('deleted_at'),
+  },
+  (table) => ({
+    targetIdx: index('place_guides_target_idx').on(
+      table.countrySlug,
+      table.regionSlug,
+      table.themeKey
+    ),
+  })
+);
+
+export type PlaceGuideRow = typeof placeGuides.$inferSelect;

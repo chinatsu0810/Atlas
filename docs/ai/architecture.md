@@ -24,6 +24,9 @@ EmployeeとSkillは、Workflowを知らない。Skillは社員を知らない。
 `lib/ai/core/skill.ts` の `Skill` 型は、Claudeへの作業指示・入力からのプロンプト生成・出力スキーマを持つ。
 `runSkill(skill, employee, input)` が、社員の人格とスキルの作業指示を組み合わせて実行し、出力を検証して返す。
 
+Webで調べてから答えるスキルは、`runWebSkill`（`lib/ai/core/web-skill.ts`）/ `runWebStep` で実行する。
+1回目にWeb検索・Web取得のツールで調べてメモを書かせ、実際に返ってきたURLを記録し、2回目にそのメモとURLの一覧を渡して出力形式どおりに答えさせる。
+
 `runSkill` / `runStep` は、任意で `effort`（思考の深さ。`low`〜`max`）を受け取れる。低いほど速く安い。
 指定しなければAPIの既定（`high`）で動く。経営判断会議は、AI呼び出しが約10回直列になるため
 `MEETING_EFFORT`（`lib/ai/workflows/management-meeting.ts`。現在は `medium`）を指定している。
@@ -35,6 +38,7 @@ EmployeeとSkillは、Workflowを知らない。Skillは社員を知らない。
 
 - 経営判断: `meeting-framing` / `why-analysis` / `decision-framework` / `risk-check` / `user-perspective` / `exit-criteria` / `experiment-design` / `proposal-drafting` / `proposal-review` / `meeting-summary`
 - Threads: `thread-research` / `thread-topic-planning` / `thread-planning` / `thread-writing` / `thread-quality-check`
+- 国・地域別まとめ: `guide-planning` / `guide-research`（Web検索）/ `guide-fact-check`（Web取得）/ `guide-writing` / `guide-review`
 - 汎用: `fact-check`（現時点では、どのWorkflowにも組み込まれていない）/ `kpi-review`（KPIレビューWorkflowで使用）
 
 ## 社員とスキルの割り当て
@@ -58,6 +62,7 @@ EmployeeとSkillは、Workflowを知らない。Skillは社員を知らない。
 | Threads投稿作成 | `social-post-pipeline.ts` | リサーチ → 企画 → 執筆 → 検品（投稿の検品・差し戻し後の再執筆を含む） |
 | Threads週次バッチ | `social-weekly-batch.ts` | 週次のテーマを見立て、各テーマで投稿作成Workflowを実行 |
 | KPIレビュー | `kpi-review.ts` | 分析担当が、与えられた数字を分析する。数字の入手は `lib/threads`（[Threads連携](./threads-integration.md)）が担う |
+| 国・地域別まとめ作成 | `place-guide.ts` | 企画 → 調査（Web検索）→ 正誤チェック（Web取得）→ 執筆 → 審査 → 会長の確認待ち。1回の呼び出しで1段階だけ進める（[国・地域別まとめ](./guides.md)） |
 
 ## 拡張のしかた
 

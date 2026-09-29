@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { and, desc, inArray, isNull, notInArray, or } from 'drizzle-orm';
 import { PlusCircle, Sparkles } from 'lucide-react';
@@ -17,6 +18,22 @@ type ExperiencesPageProps = {
 function toArray(value?: string | string[]): string[] {
   if (!value) return [];
   return Array.isArray(value) ? value : [value];
+}
+
+// 国・タグの絞り込みは一覧の並べ替えにすぎないので、canonical はページ番号だけを残した一覧にする
+export async function generateMetadata({
+  searchParams,
+}: ExperiencesPageProps): Promise<Metadata> {
+  const page = Number.parseInt((await searchParams).page ?? '1', 10);
+
+  return {
+    title: '経験談一覧｜Atlas',
+    description:
+      '海外で暮らした人・暮らしている人の経験談の一覧。住まい・学校・医療・手続きなど、国やテーマで絞り込めます。',
+    alternates: {
+      canonical: page > 1 ? `/experiences?page=${page}` : '/experiences',
+    },
+  };
 }
 
 export default async function ExperiencesPage({

@@ -1,7 +1,13 @@
+import type { Metadata } from 'next';
 import { checkoutAction } from '@/lib/payments/actions';
 import { Check } from 'lucide-react';
 import { getStripePrices, getStripeProducts } from '@/lib/payments/stripe';
 import { SubmitButton } from './submit-button';
+
+// 雛形のまま残っている料金ページ。どこからもリンクしていないので、検索結果に出さない
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 // Prices are fresh for one hour max
 export const revalidate = 3600;

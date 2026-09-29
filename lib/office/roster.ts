@@ -21,6 +21,7 @@ import {
   getManagementTeam,
   getManagementTeamActivityToday,
 } from './management-team';
+import { getGuideTeam, getGuideTeamActivityToday } from './guide-team';
 
 function withStatusLabel(employee: OfficeEmployee): OfficeEmployee {
   return {
@@ -35,25 +36,27 @@ export async function getOfficeFloor(): Promise<{
   rooms: OfficeRoom[];
 }> {
   // 今後チームが増えた場合はここにチームを追加していく
-  const [management, socialEmployees, socialRoom] = await Promise.all([
+  const [management, guide, socialEmployees, socialRoom] = await Promise.all([
     getManagementTeam(),
+    getGuideTeam(),
     getSocialTeamEmployees(),
     getSocialTeamRoom(),
   ]);
 
   return {
-    employees: [...management.employees, ...socialEmployees].map(withStatusLabel),
-    rooms: [management.room, socialRoom],
+    employees: [...management.employees, ...guide.employees, ...socialEmployees].map(withStatusLabel),
+    rooms: [management.room, guide.room, socialRoom],
   };
 }
 
 export async function getOfficeActivityToday(): Promise<OfficeActivityEntry[]> {
-  const [managementActivity, socialActivity] = await Promise.all([
+  const [managementActivity, guideActivity, socialActivity] = await Promise.all([
     getManagementTeamActivityToday(),
+    getGuideTeamActivityToday(),
     getSocialTeamActivityToday(),
   ]);
 
-  return [...managementActivity, ...socialActivity].sort(
+  return [...managementActivity, ...guideActivity, ...socialActivity].sort(
     (a, b) => a.time.getTime() - b.time.getTime()
   );
 }

@@ -14,6 +14,7 @@ export const metadata: Metadata = {
   title: 'プライバシーポリシー｜Atlas',
   description:
     'Atlasがお預かりする情報の取り扱い、アカウント削除時の扱い、外部サービスへの情報の送信についてご説明します。',
+  alternates: { canonical: '/privacy' },
 };
 
 export default function PrivacyPage() {

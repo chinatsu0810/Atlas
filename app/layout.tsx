@@ -11,19 +11,18 @@ import { Footer } from '@/components/footer';
 import { HeaderNavDesktop, HeaderNavMobile } from '@/components/header-nav';
 import { getUnreadTotal } from '@/lib/giveaways/queries';
 import Script from 'next/script';
+import { SITE_URL } from '@/lib/constants/site';
 
 export const metadata: Metadata = {
+  // 各ページの canonical・OGP の相対URLは、この本番URLを基準に絶対URLになる
+  metadataBase: new URL(SITE_URL),
   title: 'Atlas｜海外生活の質問・回答コミュニティ',
   description:
     '日本と海外をつなぐ、実体験ベースのQ&Aコミュニティ。海外生活、海外赴任・駐在、ワーホリ、留学、移住、海外での子育てなど、海外暮らしの疑問を経験者に質問し、リアルな体験談や回答を見つけられます。',
-  alternates: {
-    canonical: 'https://www.atlas-community.jp/',
-  },
   openGraph: {
     title: 'Atlas｜海外生活の質問・回答コミュニティ',
     description:
       '日本と海外をつなぐ、実体験ベースのQ&Aコミュニティ。',
-    url: 'https://www.atlas-community.jp/',
     siteName: 'Atlas',
     locale: 'ja_JP',
     type: 'website',

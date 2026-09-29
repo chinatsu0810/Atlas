@@ -1,6 +1,6 @@
 'use client';
 
-import { startTransition, useActionState } from 'react';
+import { startTransition, useActionState, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 
 import type { GatherEvent } from '@/lib/db/schema';
@@ -33,6 +33,10 @@ export function GatherEventForm({
   >(saveGatherEvent, {});
 
   const published = Boolean(event?.publishedAt);
+
+  // 選択肢にない国のイベントは「その他」を選んだ状態にし、国名の欄に入れておく
+  const listed = !event || countries.includes(event.country);
+  const [country, setCountry] = useState(listed ? event?.country ?? '' : 'その他');
 
   return (
     <form
@@ -82,12 +86,30 @@ export function GatherEventForm({
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="country" className={labelClass}>国</label>
-          <select id="country" name="country" required defaultValue={event?.country ?? ''} className={fieldClass}>
+          <select
+            id="country"
+            name="country"
+            required
+            value={country}
+            onChange={(changeEvent) => setCountry(changeEvent.target.value)}
+            className={fieldClass}
+          >
             <option value="" disabled>選択してください</option>
-            {countries.map((country) => (
-              <option key={country} value={country}>{country}</option>
+            {countries.map((item) => (
+              <option key={item} value={item}>{item}</option>
             ))}
           </select>
+          {country === 'その他' && (
+            <input
+              name="countryFreeText"
+              required
+              maxLength={100}
+              aria-label="国名"
+              placeholder="国名（例：インド）"
+              defaultValue={listed ? '' : event?.country}
+              className={fieldClass}
+            />
+          )}
         </div>
         <div>
           <label htmlFor="region" className={labelClass}>地域・都市</label>

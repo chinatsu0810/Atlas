@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import {
@@ -279,6 +280,20 @@ function ResultSection({
       )}
     </section>
   );
+}
+
+// キーワードごとの検索結果は個別の経験談・Q&Aと中身が重なるので、検索エンジンには載せない。
+// リンクはたどってもらう
+export async function generateMetadata({
+  searchParams,
+}: SearchPageProps): Promise<Metadata> {
+  const { q } = await searchParams;
+
+  return {
+    title: '経験談・Q&Aを探す｜Atlas',
+    alternates: { canonical: '/search' },
+    ...(q?.trim() ? { robots: { index: false, follow: true } } : {}),
+  };
 }
 
 export default async function SearchPage({

@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { and, desc, inArray, isNull, notInArray, or } from 'drizzle-orm';
 import { MessageCircle, PlusCircle } from 'lucide-react';
@@ -17,6 +18,22 @@ type QuestionsPageProps = {
 function toArray(value?: string | string[]): string[] {
   if (!value) return [];
   return Array.isArray(value) ? value : [value];
+}
+
+// 国・タグの絞り込みは一覧の並べ替えにすぎないので、canonical はページ番号だけを残した一覧にする
+export async function generateMetadata({
+  searchParams,
+}: QuestionsPageProps): Promise<Metadata> {
+  const page = Number.parseInt((await searchParams).page ?? '1', 10);
+
+  return {
+    title: 'Q&A一覧｜Atlas',
+    description:
+      '海外生活・海外赴任・留学・海外子育てについての質問と、経験者からの回答の一覧。国やテーマで絞り込めます。',
+    alternates: {
+      canonical: page > 1 ? `/questions?page=${page}` : '/questions',
+    },
+  };
 }
 
 export default async function QuestionsPage({

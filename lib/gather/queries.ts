@@ -11,9 +11,11 @@ import {
   isNull,
   lt,
   lte,
+  notInArray,
   type SQL,
 } from 'drizzle-orm';
 
+import { countries } from '@/lib/constants/countries';
 import { db } from '@/lib/db/drizzle';
 import { gatherEvents } from '@/lib/db/schema';
 import type { GatherWhen } from '@/lib/gather/constants';
@@ -41,11 +43,18 @@ function published(): SQL[] {
   return [isNull(gatherEvents.deletedAt), isNotNull(gatherEvents.publishedAt)];
 }
 
+// 「その他」は、選択肢にない国（国名を書いて登録したもの）すべて
+function countryIs(country: string): SQL {
+  return country === 'その他'
+    ? notInArray(gatherEvents.country, countries.filter((item) => item !== 'その他'))
+    : eq(gatherEvents.country, country);
+}
+
 // 国・地域・テーマの絞り込み
 function placeAndTheme(filters: Omit<GatherEventFilters, 'when'>): SQL[] {
   const conditions: SQL[] = [];
 
-  if (filters.country) conditions.push(eq(gatherEvents.country, filters.country));
+  if (filters.country) conditions.push(countryIs(filters.country));
   if (filters.region) conditions.push(eq(gatherEvents.region, filters.region));
   if (filters.theme) {
     conditions.push(arrayContains(gatherEvents.themes, [filters.theme]));
@@ -118,7 +127,7 @@ export async function listGatherRegions(country: string): Promise<string[]> {
       and(
         ...published(),
         gte(gatherEvents.eventDate, recentPastFrom()),
-        eq(gatherEvents.country, country),
+        countryIs(country),
         isNotNull(gatherEvents.region)
       )
     )

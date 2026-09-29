@@ -1,520 +1,234 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import Image from 'next/image';
 import {
   ArrowRight,
-  CircleUserRound,
+  ExternalLink,
+  Gift,
+  Globe,
   Info,
+  Landmark,
   MessageCircle,
   PenLine,
-  Search,
-  Sparkles,
+  UsersRound,
 } from 'lucide-react';
-import { and, desc, eq, inArray, isNull } from 'drizzle-orm';
-import { db } from '@/lib/db/drizzle';
-import {
-  experiences,
-  experienceTags,
-  questions,
-  tags,
-  users,
-} from '@/lib/db/schema';
-import { displayAuthorName } from '@/lib/users/display';
-import { ServiceCards } from '@/components/home/ServiceCards';
-import { SearchKeywordInput } from '@/components/search-keyword-input';
+import { loadDestinations } from '@/lib/home/destinations';
+import { loadHomeFeed } from '@/lib/home/feed';
+import { LatestFeed } from '@/components/home/LatestFeed';
+import { PlaceSearch } from '@/components/home/PlaceSearch';
 
-const popularSearchTags = [
-  'インド',
-  'シンガポール',
-  '子育て',
-  '教育',
-  '仕事',
-  '住まい',
-  'ビザ',
-];
-
-const experienceTypeTags = [
-  '駐在員',
-  '帯同家族',
-  '移住者',
-  '留学生',
-  'ワーホリ',
-  '現地採用',
-  '起業',
-  'フリーランス',
-  'ノマド',
-  '永住者',
-  '帰国済み',
-];
-
-const countryTags = [
-  'アメリカ',
-  'シンガポール',
-  'インド',
-  '中国',
-  'オーストラリア',
-  'タイ',
-  'イギリス',
-  'カナダ',
-  'その他',
-];
-
-const familyTags = [
-  '単身',
-  '夫婦',
-  '未就学児あり',
-  '小学生あり',
-  '中高生あり',
-  '妊娠中',
-  'ペットあり',
-];
-
-const categoryCards = [
-  {
-    icon: '✈️',
-    title: '海外赴任が\n決まった',
-    description: '帯同や家族とのこと、\n準備どうだった？',
-    href: '/search?q=駐在',
-    color: 'bg-[#EAF6FF]',
-  },
-  {
-    icon: '👨‍👩‍👧',
-    title: '子どもの学校を\n探したい',
-    description: 'インター校・現地校・\n日本人学校など',
-    href: '/search?q=学校',
-    color: 'bg-[#EFFAF7]',
-  },
-  {
-    icon: '💻',
-    title: '現地で働きたい',
-    description: '仕事内容・ビザ・\nキャリアのこと',
-    href: '/search?q=仕事',
-    color: 'bg-[#FFF7EF]',
-  },
-  {
-    icon: '🏠',
-    title: '住まいを探したい',
-    description: 'エリア・家賃・治安・\n生活環境など',
-    href: '/search?q=住まい',
-    color: 'bg-[#F4F2FF]',
-  },
-  {
-    icon: '🛂',
-    title: 'ビザを取得したい',
-    description: '手続き・必要書類・\n注意点など',
-    href: '/search?q=ビザ',
-    color: 'bg-[#EEF8FF]',
-  },
-];
-
-const conditionGroups = [
-  { title: '経験から探す', tags: experienceTypeTags },
-  { title: '国から探す', tags: countryTags },
-  { title: '家族構成から探す', tags: familyTags },
-];
-
-// 経験談カードでは「誰の経験か」が伝わるタグを優先して表示する
-const tagCategoryPriority: Record<string, number> = {
-  type: 0,
-  family: 1,
-  theme: 2,
+export const metadata: Metadata = {
+  alternates: { canonical: '/' },
 };
 
-function SectionHeading({
-  icon,
-  title,
-  description,
-  href = '/search',
-}: {
-  icon: ReactNode;
-  title: string;
-  description?: string;
-  href?: string;
-}) {
-  return (
-    <div className="mb-4 flex items-start justify-between gap-4 md:items-center">
-      <div className="min-w-0">
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="text-[#1478B8]">{icon}</span>
-          <h2 className="shrink-0 text-base font-bold text-[#123B5D] md:text-lg">
-            {title}
-          </h2>
-          {description && (
-            <p className="hidden truncate text-sm text-[#6B8498] md:block">
-              {description}
-            </p>
-          )}
-        </div>
+const popularSearches = ['学校', '病院', '住まい', 'ビザ', '赴任準備', '帰国準備'];
 
-        {/* スマホでは横に並べると切れるため、見出しの下に折り返して表示する */}
-        {description && (
-          <p className="mt-1 text-xs leading-5 text-[#6B8498] md:hidden">
-            {description}
-          </p>
-        )}
-      </div>
+// 「探す」以外の用事。機能をカードで並べず、検索の下に同じ大きさで4つだけ置く
+const otherActions = [
+  { href: '/questions/new', label: '質問する', icon: MessageCircle },
+  { href: '/experiences/new', label: '経験を書く', icon: PenLine },
+  { href: '/giveaways', label: '譲る・もらう', icon: Gift },
+  { href: '/gather', label: '集まる', icon: UsersRound },
+];
 
-      <Link
-        href={href}
-        className="mt-0.5 flex shrink-0 items-center gap-1 text-sm text-[#1478B8] hover:text-[#0D5686] md:mt-0"
-      >
-        もっと見る
-        <ArrowRight className="h-4 w-4" />
-      </Link>
-    </div>
-  );
-}
+// 公的機関のリンク。投稿が少ない国でも、ここは必ず役に立つ
+const officialLinks = [
+  { name: '海外安全ホームページ', owner: '外務省', url: 'https://www.anzen.mofa.go.jp/' },
+  { name: '在留届（ORRnet）', owner: '外務省', url: 'https://www.ezairyu.mofa.go.jp/' },
+  {
+    name: '在外公館リスト',
+    owner: '外務省',
+    url: 'https://www.mofa.go.jp/mofaj/annai/zaigai/list/index.html',
+  },
+  {
+    name: '海外子女教育（CLARINET）',
+    owner: '文部科学省',
+    url: 'https://www.mext.go.jp/a_menu/shotou/clarinet/',
+  },
+];
 
-function CardMetaRow({
-  author,
-  date,
-}: {
-  author: string;
-  date: string;
-}) {
-  return (
-    <div className="mt-3 flex items-center border-t border-[#E8EEF2] pt-3 text-xs text-[#7890A2]">
-      <div className="flex min-w-0 items-center gap-1">
-        <CircleUserRound className="h-3.5 w-3.5 shrink-0" />
-        <span className="truncate">{author}</span>
-        <span>・</span>
-        <span className="shrink-0">{date}</span>
-      </div>
-    </div>
-  );
-}
+// ヒーロー画像は左右の縁と上下をぼかし、背景の空のグラデーションになじませる
+const heroMask =
+  'linear-gradient(to right, transparent 0%, black 30%), linear-gradient(to bottom, transparent 0%, black 20%, black 85%, transparent 100%)';
 
 export default async function DashboardPage() {
-  const featuredQuestions = await db
-    .select()
-    .from(questions)
-    .where(
-      and(
-        isNull(questions.deletedAt),
-        eq(questions.featuredForAnswer, true),
-      ),
-    )
-    .orderBy(desc(questions.createdAt))
-    .limit(4);
-
-  const newExperiences = await db
-    .select({
-      id: experiences.id,
-      title: experiences.title,
-      content: experiences.content,
-      country: experiences.country,
-      createdAt: experiences.createdAt,
-      authorName: users.name,
-      authorDeletedAt: users.deletedAt,
-    })
-    .from(experiences)
-    .leftJoin(users, eq(experiences.authorId, users.id))
-    .where(isNull(experiences.deletedAt))
-    .orderBy(desc(experiences.createdAt))
-    .limit(3);
-
-  const newExperienceTags =
-    newExperiences.length === 0
-      ? []
-      : await db
-          .select({
-            experienceId: experienceTags.experienceId,
-            name: tags.name,
-            category: tags.category,
-          })
-          .from(experienceTags)
-          .innerJoin(tags, eq(tags.id, experienceTags.tagId))
-          .where(
-            inArray(
-              experienceTags.experienceId,
-              newExperiences.map((experience) => experience.id),
-            ),
-          );
-
-  const getExperienceTagNames = (experienceId: number) =>
-    newExperienceTags
-      .filter((tag) => tag.experienceId === experienceId && tag.name !== 'その他')
-      .sort(
-        (a, b) =>
-          (tagCategoryPriority[a.category] ?? 9) -
-          (tagCategoryPriority[b.category] ?? 9),
-      )
-      .slice(0, 3)
-      .map((tag) => tag.name);
+  const [feed, destinations] = await Promise.all([loadHomeFeed(), loadDestinations()]);
 
   return (
     <div className="min-h-screen bg-[#F8FBFD] text-[#123B5D]">
-      <section className="relative">
-        <h1 className="sr-only">
-          「実際どうだった？」を、経験した人に聞ける場所。Atlas
-        </h1>
+      {/* ファーストビュー：検索窓が主役。
+          スマホ・タブレットは写真を上に置き、写真と同じ高さの枠に見出しを縦中央で重ねる。
+          PC は写真をコンテンツ幅の中で右に置き、空の部分に見出しと検索カードを重ねる */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-[#C9E3F4] via-[#E6F2FA] to-[#F8FBFD]">
+        <div className="relative mx-auto max-w-[1120px] px-4 pb-6 md:px-6 lg:pb-24 lg:pt-20">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute right-0 top-0 w-full sm:w-[88%] lg:right-6 lg:top-1/2 lg:w-[72%] lg:-translate-y-1/2 xl:w-[76%]"
+            style={{
+              aspectRatio: '1983 / 793',
+              backgroundImage: "url('/atlas-hero.png.PNG')",
+              backgroundSize: '100% 100%',
+              maskImage: heroMask,
+              maskComposite: 'intersect',
+              WebkitMaskImage: heroMask,
+              WebkitMaskComposite: 'source-in',
+            }}
+          />
 
-        <div
-          className="relative left-1/2 h-[225px] w-[105vw] -translate-x-1/2 bg-contain bg-center bg-no-repeat sm:h-[270px] md:h-[345px] lg:h-[460px]"
-          style={{
-            backgroundImage: "url('/atlas-hero.png.PNG')",
-          }}
-          aria-hidden
-        />
-
-        <div className="relative mx-auto -mt-5 w-[90%] max-w-[780px] md:-mt-8 md:w-[70%]">
-          <div className="rounded-2xl border border-[#C9DFEA] bg-white/95 p-2.5 shadow-[0_14px_36px_rgba(20,73,107,0.18)] backdrop-blur">
-            <form
-              action="/search"
-              method="get"
-              className="flex items-center gap-3 px-4 md:px-6"
-            >
-              <Search className="h-5 w-5 shrink-0 text-[#1478B8]" />
-
-              <SearchKeywordInput
-                inputClassName="bg-transparent py-3 text-sm text-[#123B5D] outline-none md:text-base"
-                placeholderClassName="text-sm text-[#8AA0B0] md:text-base"
-              />
-
-              <button
-                type="submit"
-                className="rounded-full bg-[#1478B8] px-7 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0D5686]"
-              >
-                検索
-              </button>
-            </form>
-
-            <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-[#EEF3F6] px-3 pt-3 md:px-5">
-              <span className="mr-1 text-xs font-semibold text-[#406783] md:text-sm">
-                よく探されているテーマ
-              </span>
-
-              {popularSearchTags.map((tag) => (
-                <Link
-                  key={tag}
-                  href={`/search?q=${encodeURIComponent(tag)}`}
-                  className="rounded-full border border-[#D8E7F0] bg-white px-3 py-1.5 text-xs text-[#35617E] transition hover:border-[#9EC6DF] hover:bg-[#F1F8FC] md:text-sm"
-                >
-                  {tag}
-                </Link>
-              ))}
+          <div className="relative max-w-[640px]">
+            {/* 写真の高さ（幅÷2.5）と同じ高さ。スマホは画面幅いっぱい、タブレットは88% */}
+            <div className="relative flex h-[40vw] flex-col justify-center sm:h-[35.2vw] lg:h-auto">
+              <h1 className="text-2xl font-bold leading-[1.35] text-[#0F3150] [text-shadow:0_1px_14px_rgba(255,255,255,0.95)] sm:text-4xl">
+                海外生活のこと、
+                <br />
+                まずここで探す。
+              </h1>
+              <p className="mt-2 text-sm font-medium text-[#23506F] [text-shadow:0_1px_10px_rgba(255,255,255,0.95)]">
+                経験した人の話と、公式情報から。
+              </p>
             </div>
+
+            <div className="rounded-2xl border border-[#C9DFEA] bg-white/95 p-3 shadow-[0_14px_36px_rgba(20,73,107,0.18)] backdrop-blur sm:p-4 lg:mt-7">
+              <PlaceSearch />
+
+              <div className="mt-3 flex flex-wrap gap-2 px-1">
+                {popularSearches.map((word) => (
+                  <Link
+                    key={word}
+                    href={`/search?q=${encodeURIComponent(word)}`}
+                    className="flex h-9 items-center rounded-full border border-[#D8E7F0] bg-white px-3.5 text-sm text-[#35617E] transition hover:border-[#9EC6DF] hover:bg-[#F1F8FC] active:bg-[#E6F2FA]"
+                  >
+                    {word}
+                  </Link>
+                ))}
+              </div>
+
+              {/* スマホでも1画面に収まり、指で押しやすいよう4等分にする */}
+              <div className="mt-3 grid grid-cols-4 border-t border-[#EEF3F6] pt-2">
+                {otherActions.map(({ href, label, icon: Icon }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className="flex min-h-[56px] flex-col items-center justify-center gap-1 rounded-xl px-1 text-[11px] font-semibold text-[#35617E] transition hover:bg-[#F1F8FC] hover:text-[#1478B8] active:bg-[#E6F2FA] sm:flex-row sm:gap-1.5 sm:text-sm"
+                  >
+                    <Icon className="h-5 w-5 text-[#1478B8] sm:h-4 sm:w-4" />
+                    {label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            <p
+              role="status"
+              className="mt-3 flex items-start gap-1.5 px-1 text-[11px] leading-5 text-[#7F95A6] md:text-xs"
+            >
+              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span>2026年9月オープン。現在はサンプルの投稿を含めて掲載しています。</span>
+            </p>
           </div>
-
-          {/* スマホではヒーロー画像内の説明文が小さく読めないため、テキストで補う */}
-          <p className="mt-4 text-center text-xs leading-6 text-[#406783] sm:hidden">
-            海外赴任、帯同、移住、留学、旅行。
-            <br />
-            検索ではわからないリアルな経験談が集まっています。
-          </p>
-
-          <p
-            role="status"
-            className="mt-3 flex items-start justify-center gap-1.5 text-center text-[11px] leading-5 text-[#7F95A6] md:text-xs"
-          >
-            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            <span>
-              2026年9月オープン。現在はサンプルの投稿を含めて掲載しています。
-            </span>
-          </p>
         </div>
       </section>
 
-      <main className="mx-auto max-w-[1120px] px-4 pb-12 pt-8 md:px-6 md:pt-10">
-        <section className="mb-10">
-          <h2 className="mb-4 text-sm font-bold text-[#174C73] md:text-base">
-            こんな経験を探していますか？
-          </h2>
-
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-            {categoryCards.map((card, index) => (
+      <div className="mx-auto max-w-[1120px] px-4 pb-14 md:px-6">
+        <section className="pb-8 pt-4 lg:pt-2">
+          <div className="mb-3 flex items-baseline gap-2">
+            <h2 className="text-sm font-bold text-[#174C73] md:text-base">行き先から</h2>
+            <span className="text-[11px] text-[#7F95A6]">投稿の多い国</span>
+            <Link
+              href="/places"
+              className="ml-auto flex items-center gap-1 self-center text-xs text-[#1478B8] hover:text-[#0D5686] md:text-sm"
+            >
+              すべての国
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-4 gap-2 md:grid-cols-8">
+            {destinations.map((country) => (
               <Link
-                key={card.title}
-                href={card.href}
-                className={`${card.color} ${index >= 4 ? 'hidden sm:block' : ''} group rounded-xl border border-white p-3 shadow-sm transition hover:-translate-y-1 hover:shadow-md sm:p-4`}
+                key={country.name}
+                href={`/places/${country.slug}`}
+                className="flex min-h-[76px] flex-col items-center justify-center gap-1.5 rounded-xl border border-[#E1EBF1] bg-white px-1 py-3 transition hover:-translate-y-0.5 hover:border-[#9EC6DF] hover:shadow-sm active:bg-[#F1F8FC]"
               >
-                <div className="mb-3 text-3xl">{card.icon}</div>
-
-                <div className="flex items-end justify-between gap-2">
-                  <div>
-                    <h3 className="whitespace-pre-line text-sm font-bold leading-6 text-[#174C73]">
-                      {card.title}
-                    </h3>
-                    <p className="mt-1 whitespace-pre-line text-[11px] leading-5 text-[#648198] sm:text-xs">
-                      {card.description}
-                    </p>
-                  </div>
-
-                  <ArrowRight className="mb-1 hidden h-4 w-4 shrink-0 text-[#4E9BC5] transition group-hover:translate-x-1 sm:block" />
-                </div>
+                {country.flag ? (
+                  <Image
+                    src={`/flags/${country.flag}.svg`}
+                    alt=""
+                    width={36}
+                    height={36}
+                    unoptimized
+                    className="h-9 w-9 rounded-full object-cover ring-1 ring-[#E1EBF1]"
+                  />
+                ) : (
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#EAF4FB] text-[#1478B8]">
+                    <Globe className="h-5 w-5" />
+                  </span>
+                )}
+                <span className="text-center text-xs font-medium leading-4 text-[#174C73]">
+                  {country.name}
+                </span>
               </Link>
             ))}
           </div>
         </section>
 
-        <section className="mb-10">
-          <SectionHeading
-            icon={<Sparkles className="h-5 w-5" />}
-            title="新着の経験"
-            description="みんなのリアルな体験談が続々と投稿されています"
-            href="/experiences"
-          />
-
-          {newExperiences.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-[#C9DDE9] bg-white py-10 text-center text-sm text-[#678096]">
-              まだ投稿された経験談はありません。
+        <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
+          <section>
+            <h2 className="mb-3 text-sm font-bold text-[#174C73] md:text-base">
+              最近Atlasに届いたこと
+            </h2>
+            <LatestFeed items={feed} />
+            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 px-1 text-sm">
+              <Link href="/experiences" className="flex items-center gap-1 text-[#1478B8] hover:text-[#0D5686]">
+                経験談をもっと見る
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link href="/questions" className="flex items-center gap-1 text-[#1478B8] hover:text-[#0D5686]">
+                Q&Aをもっと見る
+                <ArrowRight className="h-4 w-4" />
+              </Link>
             </div>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-3">
-              {newExperiences.map((experience) => {
-                const tagNames = getExperienceTagNames(experience.id);
+          </section>
 
-                return (
-                  <Link
-                    key={experience.id}
-                    href={`/experiences/${experience.id}`}
-                    className="flex flex-col rounded-xl border border-[#E1EBF1] border-t-4 border-t-[#8CC5E4] bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
-                  >
-                    <div className="flex flex-wrap gap-1.5">
-                      <span className="rounded-full bg-[#E8F6FC] px-2.5 py-1 text-xs text-[#1478B8]">
-                        {experience.country}
-                      </span>
-
-                      {tagNames.map((tagName) => (
-                        <span
-                          key={tagName}
-                          className="rounded-full bg-[#F1F5F8] px-2.5 py-1 text-xs text-[#557086]"
-                        >
-                          {tagName}
-                        </span>
-                      ))}
-                    </div>
-
-                    <h3 className="mt-3 line-clamp-2 text-sm font-bold leading-6 text-[#174C73]">
-                      {experience.title}
-                    </h3>
-
-                    <p className="mt-2 line-clamp-3 flex-1 text-xs leading-5 text-[#6D8496]">
-                      {experience.content}
-                    </p>
-
-                    <CardMetaRow
-                      author={displayAuthorName(
-                        experience.authorName,
-                        experience.authorDeletedAt
-                      )}
-                      date={new Date(experience.createdAt).toLocaleDateString('ja-JP')}
-                    />
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </section>
-
-        <section className="mb-10">
-          <SectionHeading
-            icon={<MessageCircle className="h-5 w-5" />}
-            title="回答募集中の質問"
-            description="経験したあなたにしか、答えられないことがあります。"
-            href="/questions"
-          />
-
-          {featuredQuestions.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-[#C9DDE9] bg-white py-10 text-center text-sm text-[#678096]">
-              現在、回答募集中の質問はありません。
-            </div>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {featuredQuestions.map((question) => (
-                <Link
-                  key={question.id}
-                  href={`/questions/${question.id}`}
-                  className="rounded-xl border border-[#E1EBF1] bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
-                >
-                  <span className="inline-block rounded-full bg-[#E8F6FC] px-2.5 py-1 text-xs text-[#1478B8]">
-                    {question.country}
-                  </span>
-
-                  <h3 className="mt-3 line-clamp-2 text-sm font-bold leading-6 text-[#174C73]">
-                    {question.title}
-                  </h3>
-
-                  <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#6D8496]">
-                    {question.content}
-                  </p>
-
-                  <div className="mt-4 flex items-center gap-1 text-xs font-semibold text-[#1478B8]">
-                    回答する
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-        </section>
-
-        <section className="mb-10 rounded-2xl border border-[#C9DFEA] bg-gradient-to-br from-[#EAF6FF] to-[#F4FBF8] px-5 py-8 text-center md:px-10 md:py-10">
-          <p className="text-sm leading-7 text-[#406783] md:text-base">
-            未来の自分のために。そして、
-            <br className="sm:hidden" />
-            いつか同じ道を歩く誰かのために。
-          </p>
-          <h2 className="mt-2 text-lg font-bold leading-8 text-[#123B5D] md:text-xl">
-            あなたの「実際どうだった？」
-            <br className="sm:hidden" />
-            を残してみませんか
-          </h2>
-
-          <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link
-              href="/experiences/new"
-              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#1478B8] px-7 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0D5686] sm:w-auto"
-            >
-              <PenLine className="h-4 w-4" />
-              経験談を書く
-            </Link>
-            <Link
-              href="/questions/new"
-              className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#9EC6DF] bg-white px-7 py-3 text-sm font-semibold text-[#1478B8] transition hover:bg-[#F1F8FC] sm:w-auto"
-            >
-              <MessageCircle className="h-4 w-4" />
-              質問する
-            </Link>
-          </div>
-        </section>
-
-        <section className="mb-10 border-y border-[#DCEAF2] py-6">
-          <h2 className="mb-5 text-base font-bold text-[#123B5D] md:text-lg">
-            条件から探す
-          </h2>
-
-          <div className="grid gap-6 md:grid-cols-3 md:gap-8">
-            {conditionGroups.map((group, index) => (
-              <div
-                key={group.title}
-                className={
-                  index === 0
-                    ? ''
-                    : 'border-t border-[#DCEAF2] pt-6 md:border-l md:border-t-0 md:pl-8 md:pt-0'
-                }
-              >
-                <h3 className="mb-3 text-sm font-bold text-[#174C73]">
-                  {group.title}
-                </h3>
-
-                <div className="flex flex-wrap gap-2">
-                  {group.tags.map((tag) => (
-                    <Link
-                      key={tag}
-                      href={`/search?q=${encodeURIComponent(tag)}`}
-                      className="rounded-full border border-[#D8E7F0] bg-white px-3.5 py-1.5 text-xs text-[#35617E] shadow-sm hover:bg-[#F1F8FC] md:text-sm"
+          <aside className="space-y-4">
+            <section>
+              <h2 className="mb-3 flex items-center gap-1.5 text-sm font-bold text-[#174C73] md:text-base">
+                <Landmark className="h-4 w-4 text-[#1478B8]" />
+                公式情報
+              </h2>
+              <ul className="overflow-hidden rounded-2xl border border-[#E1EBF1] bg-white">
+                {officialLinks.map((link) => (
+                  <li key={link.url} className="border-b border-[#EEF3F6] last:border-b-0">
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-4 py-3 text-sm text-[#174C73] hover:bg-[#F8FBFD]"
                     >
-                      {tag}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate">{link.name}</span>
+                        <span className="text-[11px] text-[#7F95A6]">{link.owner}</span>
+                      </span>
+                      <ExternalLink className="h-3.5 w-3.5 shrink-0 text-[#9EC6DF]" />
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </section>
 
-        <ServiceCards />
-      </main>
+            <Link
+              href="/gather"
+              className="flex items-center gap-3 rounded-2xl border border-[#E1EBF1] bg-white px-4 py-3 transition hover:border-[#9EC6DF]"
+            >
+              <UsersRound className="h-5 w-5 shrink-0 text-[#1478B8]" />
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-[#174C73]">集まる</span>
+                <span className="text-[11px] text-[#7F95A6]">海外で、日本語で参加できるイベント</span>
+              </span>
+              <ArrowRight className="h-4 w-4 shrink-0 text-[#9EC6DF]" />
+            </Link>
+          </aside>
+        </div>
+      </div>
     </div>
   );
 }

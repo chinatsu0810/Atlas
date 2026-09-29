@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import { getSession } from '@/lib/auth/session';
@@ -13,6 +14,11 @@ import {
 
 import { BackButton } from '@/components/back-button';
 import ExperienceForm from './experience-form';
+
+// 投稿フォームは検索結果に出さない
+export const metadata: Metadata = {
+  robots: { index: false, follow: true },
+};
 
 export default async function NewExperiencePage() {
   const session = await getSession();

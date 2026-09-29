@@ -19,6 +19,12 @@ import { exitPlannerEmployee } from './exit-planner';
 import { experimentDriverEmployee } from './experiment-driver';
 import { managementAuditorEmployee } from './management-auditor';
 
+import { guideChiefEmployee } from './guide-chief';
+import { guideResearcherEmployee } from './guide-researcher';
+import { guideFactCheckerEmployee } from './guide-fact-checker';
+import { guideWriterEmployee } from './guide-writer';
+import { guideReviewerEmployee } from './guide-reviewer';
+
 export const ALL_EMPLOYEES: Employee[] = [
   socialResearcherEmployee,
   socialPlannerEmployee,
@@ -34,6 +40,12 @@ export const ALL_EMPLOYEES: Employee[] = [
   exitPlannerEmployee,
   experimentDriverEmployee,
   managementAuditorEmployee,
+
+  guideChiefEmployee,
+  guideResearcherEmployee,
+  guideFactCheckerEmployee,
+  guideWriterEmployee,
+  guideReviewerEmployee,
 ];
 
 export const EMPLOYEES_BY_ID: Record<string, Employee> = Object.fromEntries(
